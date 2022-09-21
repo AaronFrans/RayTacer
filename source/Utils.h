@@ -12,9 +12,44 @@ namespace dae
 		//SPHERE HIT-TESTS
 		inline bool HitTest_Sphere(const Sphere& sphere, const Ray& ray, HitRecord& hitRecord, bool ignoreHitRecord = false)
 		{
-			//todo W1
-			assert(false && "No Implemented Yet!");
-			return false;
+
+			Vector3 originToCenter{ sphere.origin - ray.origin };
+			float originToCenterDistance{ originToCenter.Magnitude() };
+
+
+			float t{ Vector3::Dot(originToCenter, ray.direction) };
+			Vector3 originToCenterProjected{ ray.origin + ray.direction * t };
+
+			float centerToProjectedLength{ (sphere.origin - originToCenterProjected).Magnitude() };
+
+			if (centerToProjectedLength > sphere.radius)
+			{
+				hitRecord.didHit = false;
+				return false;
+			}
+
+			float projectedToEdge = sqrt(sphere.radius * sphere.radius - centerToProjectedLength * centerToProjectedLength);
+
+			float t1{ t - projectedToEdge };
+			float t2{ t + projectedToEdge };
+
+			if (!ignoreHitRecord)
+			{
+				if (t1 > t2)
+				{
+					hitRecord.didHit = true;
+					hitRecord.materialIndex = sphere.materialIndex;
+					hitRecord.t = t2;
+
+				}else
+				{
+					hitRecord.didHit = true;
+					hitRecord.materialIndex = sphere.materialIndex;
+					hitRecord.t = t1;
+				}
+			}
+
+			return true;
 		}
 
 		inline bool HitTest_Sphere(const Sphere& sphere, const Ray& ray)
@@ -22,6 +57,7 @@ namespace dae
 			HitRecord temp{};
 			return HitTest_Sphere(sphere, ray, temp, true);
 		}
+
 #pragma endregion
 #pragma region Plane HitTest
 		//PLANE HIT-TESTS
@@ -128,7 +164,7 @@ namespace dae
 				//read till end of line and ignore all remaining chars
 				file.ignore(1000, '\n');
 
-				if (file.eof()) 
+				if (file.eof())
 					break;
 			}
 
@@ -143,7 +179,7 @@ namespace dae
 				Vector3 edgeV0V2 = positions[i2] - positions[i0];
 				Vector3 normal = Vector3::Cross(edgeV0V1, edgeV0V2);
 
-				if(isnan(normal.x))
+				if (isnan(normal.x))
 				{
 					int k = 0;
 				}

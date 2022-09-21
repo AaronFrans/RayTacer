@@ -1,6 +1,7 @@
 //External includes
 #include "SDL.h"
 #include "SDL_surface.h"
+#include <iostream>;
 
 //Project includes
 #include "Renderer.h"
@@ -12,7 +13,7 @@
 
 using namespace dae;
 
-Renderer::Renderer(SDL_Window * pWindow) :
+Renderer::Renderer(SDL_Window* pWindow) :
 	m_pWindow(pWindow),
 	m_pBuffer(SDL_GetWindowSurface(pWindow))
 {
@@ -27,15 +28,57 @@ void Renderer::Render(Scene* pScene) const
 	auto& materials = pScene->GetMaterials();
 	auto& lights = pScene->GetLights();
 
+	Vector3 rayDirection{};
+	Ray viewRay{};
+	float ar{ float(m_Width) / float(m_Height) };
 	for (int px{}; px < m_Width; ++px)
 	{
 		for (int py{}; py < m_Height; ++py)
 		{
-			float gradient = px / static_cast<float>(m_Width);
-			gradient += py / static_cast<float>(m_Width);
-			gradient /= 2.0f;
 
-			ColorRGB finalColor{ gradient, gradient, gradient };
+#pragma region Calculate Ray Direction
+			float pxc, pyc, cx, cy;
+
+			pxc = px + 0.5f;
+			pyc = py + 0.5f;
+
+			cx = ((2 * pxc / m_Width) - 1) * ar;
+			cy = 1 - ((2 * pyc) / m_Height);
+
+			Vector3 right, up, look;
+
+			right = Vector3{ cx, 0, 0 };
+
+			up = Vector3{ 0, cy, 0 };
+
+			look = Vector3{ 0,0,1 };
+
+
+			rayDirection = (right + up + look).Normalized();
+#pragma endregion
+
+
+			//Ray we cast from the camera to the pixel
+			viewRay = Ray{ {0,0,0}, rayDirection };
+
+			//Color containing info about possible hit
+			ColorRGB finalColor{};
+
+			//HitRecord containing more info about possible hit
+			HitRecord closestHit{};
+			pScene->GetClosestHit(viewRay, closestHit);
+
+
+			if (closestHit.didHit)
+			{
+				//if hit change the color to the material color
+				finalColor = materials[closestHit.materialIndex]->Shade();
+
+				//verify t-values
+				/*const float scaled_t = (closestHit.t - 50.f) / 40.f;
+				finalColor = { scaled_t,scaled_t ,scaled_t };*/
+
+			}
 
 			//Update Color in Buffer
 			finalColor.MaxToOne();

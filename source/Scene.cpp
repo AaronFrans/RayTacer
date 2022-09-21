@@ -6,8 +6,8 @@ namespace dae {
 
 #pragma region Base Scene
 	//Initialize Scene with Default Solid Color Material (RED)
-	Scene::Scene():
-		m_Materials({ new Material_SolidColor({1,0,0})})
+	Scene::Scene() :
+		m_Materials({ new Material_SolidColor({1,0,0}) })
 	{
 		m_SphereGeometries.reserve(32);
 		m_PlaneGeometries.reserve(32);
@@ -17,7 +17,7 @@ namespace dae {
 
 	Scene::~Scene()
 	{
-		for(auto& pMaterial : m_Materials)
+		for (auto& pMaterial : m_Materials)
 		{
 			delete pMaterial;
 			pMaterial = nullptr;
@@ -26,10 +26,17 @@ namespace dae {
 		m_Materials.clear();
 	}
 
-	void dae::Scene::GetClosestHit(const Ray& ray, HitRecord& closestHit) const
+	void dae::Scene::GetClosestHit(const Ray& ray, HitRecord& hitRecord) const
 	{
-		//todo W1
-		assert(false && "No Implemented Yet!");
+		HitRecord toKeepRecord{};
+		for (auto& pSphere : m_SphereGeometries)
+		{
+			GeometryUtils::HitTest_Sphere(pSphere, ray, toKeepRecord);
+			if (toKeepRecord.t < hitRecord.t)
+			{
+				hitRecord = toKeepRecord;
+			}
+		}
 	}
 
 	bool Scene::DoesHit(const Ray& ray) const
