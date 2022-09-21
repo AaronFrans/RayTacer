@@ -26,6 +26,31 @@ int main(int argc, char* args[])
 	(void)argc;
 	(void)args;
 
+
+	float dotResult{};
+
+	dotResult = Vector3::Dot(Vector3::UnitX, Vector3::UnitX);
+	std::cout << dotResult << '\n';
+
+	dotResult = Vector3::Dot(Vector3::UnitX, -Vector3::UnitX);
+	std::cout << dotResult << '\n';
+
+	dotResult = Vector3::Dot(Vector3::UnitX, Vector3::UnitY);
+	std::cout << dotResult << '\n';
+
+	Vector3 crossResult{};
+
+	crossResult = Vector3::Cross(Vector3::UnitZ, Vector3::UnitX);
+	std::cout << "X: " << crossResult.x << " " 
+			  << "Y: " << crossResult.y << " "
+			  << "Z: " << crossResult.z << " " <<'\n';
+
+	crossResult = Vector3::Cross(Vector3::UnitX, Vector3::UnitZ);
+	std::cout << "X: " << crossResult.x << " " 
+			  << "Y: " << crossResult.y << " "
+			  << "Z: " << crossResult.z << " " <<'\n';
+
+
 	//Create window + surfaces
 	SDL_Init(SDL_INIT_VIDEO);
 
@@ -65,7 +90,7 @@ int main(int argc, char* args[])
 				isLooping = false;
 				break;
 			case SDL_KEYUP:
-				if(e.key.keysym.scancode == SDL_SCANCODE_X)
+				if (e.key.keysym.scancode == SDL_SCANCODE_X)
 					takeScreenshot = true;
 				break;
 			}
