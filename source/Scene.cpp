@@ -28,7 +28,19 @@ namespace dae {
 
 	void dae::Scene::GetClosestHit(const Ray& ray, HitRecord& hitRecord) const
 	{
+
 		HitRecord toKeepRecord{};
+
+
+		for (auto& pPlanes : m_PlaneGeometries)
+		{
+			GeometryUtils::HitTest_Plane(pPlanes, ray, toKeepRecord);
+			if (toKeepRecord.t < hitRecord.t)
+			{
+				hitRecord = toKeepRecord;
+			}
+		}
+
 		for (auto& pSphere : m_SphereGeometries)
 		{
 			GeometryUtils::HitTest_Sphere(pSphere, ray, toKeepRecord);
@@ -37,6 +49,7 @@ namespace dae {
 				hitRecord = toKeepRecord;
 			}
 		}
+
 	}
 
 	bool Scene::DoesHit(const Ray& ray) const

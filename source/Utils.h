@@ -41,7 +41,8 @@ namespace dae
 					hitRecord.materialIndex = sphere.materialIndex;
 					hitRecord.t = t2;
 
-				}else
+				}
+				else
 				{
 					hitRecord.didHit = true;
 					hitRecord.materialIndex = sphere.materialIndex;
@@ -63,9 +64,25 @@ namespace dae
 		//PLANE HIT-TESTS
 		inline bool HitTest_Plane(const Plane& plane, const Ray& ray, HitRecord& hitRecord, bool ignoreHitRecord = false)
 		{
-			//todo W1
-			assert(false && "No Implemented Yet!");
+			//check if looking at plane
+			float denom = Vector3::Dot(ray.direction, plane.normal);
+
+			//formula
+			// t = ((origin_plane - origin_ray) dot normal_plane) / direction_ray dot normal_plane
+
+			if (denom < 0)
+			{
+				Vector3 rayToPlane = { plane.origin - ray.origin };
+				float t{ (Vector3::Dot(rayToPlane, plane.normal) / Vector3::Dot(ray.direction, plane.normal)) };
+				hitRecord.didHit = true;
+				hitRecord.materialIndex = plane.materialIndex;
+				hitRecord.t = t;
+				return (t >= 0);
+			}
+
+			hitRecord.didHit = false;
 			return false;
+
 		}
 
 		inline bool HitTest_Plane(const Plane& plane, const Ray& ray)

@@ -68,15 +68,25 @@ void Renderer::Render(Scene* pScene) const
 			HitRecord closestHit{};
 			pScene->GetClosestHit(viewRay, closestHit);
 
+			//Testing
+			//Sphere testSphere{ {0.f,0.f,100.f}, 50.f, 0 };
+			//GeometryUtils::HitTest_Sphere(testPlane, viewRay, closestHit);
+
+			//Plane testPlane{ {0.f,-50.f,0.f}, {0,1,0}, 0 };
+			//GeometryUtils::HitTest_Plane(testPlane, viewRay, closestHit);
 
 			if (closestHit.didHit)
 			{
 				//if hit change the color to the material color
 				finalColor = materials[closestHit.materialIndex]->Shade();
 
-				//verify t-values
+				//verify t-values for sphere
 				/*const float scaled_t = (closestHit.t - 50.f) / 40.f;
 				finalColor = { scaled_t,scaled_t ,scaled_t };*/
+
+				//verify t-values for plane
+				//const float scaled_t = closestHit.t - 500.f;
+				//finalColor = { scaled_t,scaled_t ,scaled_t };
 
 			}
 
