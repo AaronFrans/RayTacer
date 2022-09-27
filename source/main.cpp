@@ -30,26 +30,26 @@ int main(int argc, char* args[])
 
 	float dotResultV3{};
 
-	dotResultV3 = Vector3::Dot(Vector3::UnitX, Vector3::UnitX);
-	std::cout << dotResultV3 << '\n';
+	//dotResultV3 = Vector3::Dot(Vector3::UnitX, Vector3::UnitX);
+	//std::cout << dotResultV3 << '\n';
 
-	dotResultV3 = Vector3::Dot(Vector3::UnitX, -Vector3::UnitX);
-	std::cout << dotResultV3 << '\n';
+	//dotResultV3 = Vector3::Dot(Vector3::UnitX, -Vector3::UnitX);
+	//std::cout << dotResultV3 << '\n';
 
-	dotResultV3 = Vector3::Dot(Vector3::UnitX, Vector3::UnitY);
-	std::cout << dotResultV3 << '\n';
+	//dotResultV3 = Vector3::Dot(Vector3::UnitX, Vector3::UnitY);
+	//std::cout << dotResultV3 << '\n';
 
-	Vector3 crossResult{};
+	//Vector3 crossResult{};
 
-	crossResult = Vector3::Cross(Vector3::UnitZ, Vector3::UnitX);
-	std::cout << "X: " << crossResult.x << " "
-		<< "Y: " << crossResult.y << " "
-		<< "Z: " << crossResult.z << " " << '\n';
+	//crossResult = Vector3::Cross(Vector3::UnitZ, Vector3::UnitX);
+	//std::cout << "X: " << crossResult.x << " "
+	//	<< "Y: " << crossResult.y << " "
+	//	<< "Z: " << crossResult.z << " " << '\n';
 
-	crossResult = Vector3::Cross(Vector3::UnitX, Vector3::UnitZ);
-	std::cout << "X: " << crossResult.x << " "
-		<< "Y: " << crossResult.y << " "
-		<< "Z: " << crossResult.z << " " << '\n';
+	//crossResult = Vector3::Cross(Vector3::UnitX, Vector3::UnitZ);
+	//std::cout << "X: " << crossResult.x << " "
+	//	<< "Y: " << crossResult.y << " "
+	//	<< "Z: " << crossResult.z << " " << '\n';
 
 
 #pragma endregion
@@ -76,7 +76,8 @@ int main(int argc, char* args[])
 	const auto pTimer = new Timer();
 	const auto pRenderer = new Renderer(pWindow);
 
-	const auto pScene = new Scene_W1();
+	//const auto pScene = new Scene_W1();
+	const auto pScene = new Scene_W2();
 	pScene->Initialize();
 
 	//Start loop

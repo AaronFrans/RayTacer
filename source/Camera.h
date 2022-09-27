@@ -34,6 +34,7 @@ namespace dae
 
 		Matrix CalculateCameraToWorld()
 		{
+			// get camera matrix, and multiply ray with this matrix
 			//todo: W2
 			assert(false && "Not Implemented Yet");
 			return {};

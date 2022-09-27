@@ -30,7 +30,7 @@ void Renderer::Render(Scene* pScene) const
 
 	Vector3 rayDirection{};
 	Ray viewRay{};
-	float ar{ float(m_Width) / float(m_Height) };
+	float ar{ m_Width / static_cast<float>(m_Height) };
 	for (int px{}; px < m_Width; ++px)
 	{
 		for (int py{}; py < m_Height; ++py)
@@ -59,7 +59,7 @@ void Renderer::Render(Scene* pScene) const
 
 
 			//Ray we cast from the camera to the pixel
-			viewRay = Ray{ {0,0,0}, rayDirection };
+			viewRay = Ray{ camera.origin, rayDirection };
 
 			//Color containing info about possible hit
 			ColorRGB finalColor{};

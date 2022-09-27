@@ -73,11 +73,12 @@ namespace dae
 			if (denom < 0)
 			{
 				Vector3 rayToPlane = { plane.origin - ray.origin };
-				float t{ (Vector3::Dot(rayToPlane, plane.normal) / Vector3::Dot(ray.direction, plane.normal)) };
+				float t{ (Vector3::Dot(rayToPlane, plane.normal) / denom) };
 				hitRecord.didHit = true;
 				hitRecord.materialIndex = plane.materialIndex;
 				hitRecord.t = t;
-				return (t >= 0);
+				return true;
+
 			}
 
 			hitRecord.didHit = false;
