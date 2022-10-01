@@ -35,24 +35,18 @@ namespace dae {
 		for (auto& pPlanes : m_PlaneGeometries)
 		{
 			GeometryUtils::HitTest_Plane(pPlanes, ray, toKeepRecord);
-			if (ray.min < toKeepRecord.t && ray.max > toKeepRecord.t)
+			if (toKeepRecord.t < hitRecord.t)
 			{
-				if (toKeepRecord.t < hitRecord.t)
-				{
-					hitRecord = toKeepRecord;
-				}
+				hitRecord = toKeepRecord;
 			}
 		}
 
 		for (auto& pSphere : m_SphereGeometries)
 		{
 			GeometryUtils::HitTest_Sphere(pSphere, ray, toKeepRecord);
-			if (ray.min < toKeepRecord.t && ray.max > toKeepRecord.t)
+			if (toKeepRecord.t < hitRecord.t)
 			{
-				if (toKeepRecord.t < hitRecord.t)
-				{
-					hitRecord = toKeepRecord;
-				}
+				hitRecord = toKeepRecord;
 			}
 		}
 
@@ -60,8 +54,19 @@ namespace dae {
 
 	bool Scene::DoesHit(const Ray& ray) const
 	{
-		//todo W3
-		assert(false && "No Implemented Yet!");
+		for (auto& pPlanes : m_PlaneGeometries)
+		{
+			if (GeometryUtils::HitTest_Plane(pPlanes, ray))
+				return true;
+		}
+
+
+		for (auto& pSphere : m_SphereGeometries)
+		{
+			if (GeometryUtils::HitTest_Sphere(pSphere, ray))
+				return true;
+		}
+
 		return false;
 	}
 

@@ -33,24 +33,27 @@ namespace dae
 			float t1{ t - projectedToEdge };
 			float t2{ t + projectedToEdge };
 
-			if (!ignoreHitRecord)
+			// TODO:check for negatives
+			float tActual{ t1 > t2 ? t2 : t1 };
+			if (ray.min < tActual && tActual < ray.max)
 			{
-				if (t1 > t2)
+				if (!ignoreHitRecord)
 				{
-					hitRecord.didHit = true;
-					hitRecord.materialIndex = sphere.materialIndex;
-					hitRecord.t = t2;
 
-				}
-				else
-				{
 					hitRecord.didHit = true;
 					hitRecord.materialIndex = sphere.materialIndex;
-					hitRecord.t = t1;
+					hitRecord.t = tActual;
+
+					Vector3 hitPoint{ ray.origin + ray.direction * hitRecord.t };
+					hitRecord.normal = (hitPoint - sphere.origin).Normalized();
 				}
+
+				return true;
 			}
 
-			return true;
+			hitRecord.didHit = false;
+			return false;
+
 		}
 
 		inline bool HitTest_Sphere(const Sphere& sphere, const Ray& ray)
@@ -64,25 +67,35 @@ namespace dae
 		//PLANE HIT-TESTS
 		inline bool HitTest_Plane(const Plane& plane, const Ray& ray, HitRecord& hitRecord, bool ignoreHitRecord = false)
 		{
+
 			//check if looking at plane
 			float denom = Vector3::Dot(ray.direction, plane.normal);
 
 			//formula
 			// t = ((origin_plane - origin_ray) dot normal_plane) / direction_ray dot normal_plane
 
-			if (denom < 0)
+			if (denom > 0)
 			{
-				Vector3 rayToPlane = { plane.origin - ray.origin };
-				float t{ (Vector3::Dot(rayToPlane, plane.normal) / denom) };
-				hitRecord.didHit = true;
-				hitRecord.materialIndex = plane.materialIndex;
-				hitRecord.t = t;
-				return true;
-
+				hitRecord.didHit = false;
+				return false;
 			}
 
+			Vector3 rayToPlane = { plane.origin - ray.origin };
+			float t{ (Vector3::Dot(rayToPlane, plane.normal) / denom) };
+			if (ray.min < t && t < ray.max)
+			{
+				if (!ignoreHitRecord)
+				{
+					hitRecord.didHit = true;
+					hitRecord.materialIndex = plane.materialIndex;
+					hitRecord.t = t;
+					hitRecord.normal = plane.normal;
+				}
+				return true;
+			}
 			hitRecord.didHit = false;
 			return false;
+
 
 		}
 
@@ -128,9 +141,11 @@ namespace dae
 		//Direction from target to light
 		inline Vector3 GetDirectionToLight(const Light& light, const Vector3 origin)
 		{
-			//todo W3
-			assert(false && "No Implemented Yet!");
-			return {};
+			if (light.type == LightType::Point)
+			{
+				return Vector3{ light.origin - origin };
+			}
+			return{};
 		}
 
 		inline ColorRGB GetRadiance(const Light& light, const Vector3& target)

@@ -104,9 +104,13 @@ namespace dae {
 
 	Matrix Matrix::CreateTranslation(float x, float y, float z)
 	{
-		//todo W1
-		assert(false && "Not Implemented Yet");
-		return {};
+		Matrix toReturn{ Matrix{
+			Vector3::UnitX,
+			Vector3::UnitY,
+			Vector3::UnitZ,
+			Vector3{ x, y, z }
+		} };
+		return toReturn;
 	}
 
 	Matrix Matrix::CreateTranslation(const Vector3& t)
@@ -116,30 +120,52 @@ namespace dae {
 
 	Matrix Matrix::CreateRotationX(float pitch)
 	{
-		//todo W1
-		assert(false && "Not Implemented Yet");
-		return {};
+		float pitchSin{ sinf(pitch) }, pitchCos{ cosf(pitch) };
+
+		Matrix toReturn{ Matrix{
+					Vector3{ 1, 0, 0 },
+					Vector3{ 0, pitchCos, -pitchSin },
+					Vector3{ 0, pitchSin, pitchCos },
+					Vector3{ 0, 0, 0 }
+		} };
+		return toReturn;
 	}
 
 	Matrix Matrix::CreateRotationY(float yaw)
 	{
-		//todo W1
-		assert(false && "Not Implemented Yet");
-		return {};
+		float yawSin{ sinf(yaw) }, yawCos{ cosf(yaw) };
+
+		Matrix toReturn{ Matrix{
+					Vector3{ yawCos, -yawSin, 0 },
+					Vector3{ 0, 1, 0 },
+					Vector3{ yawSin, yawCos, 1 },
+					Vector3{ 0, 0, 0 }
+		} };
+		return toReturn;
 	}
 
 	Matrix Matrix::CreateRotationZ(float roll)
 	{
-		//todo W1
-		assert(false && "Not Implemented Yet");
-		return {};
+		float rollSin{ sinf(roll) }, rollCos{ cosf(roll) };
+
+		Matrix toReturn{ Matrix{
+					Vector3{ rollCos, rollSin, 0 },
+					Vector3{ -rollSin, rollCos, 0 },
+					Vector3{ 0, 0, 1 },
+					Vector3{ 0, 0, 0 }
+		} };
+		return toReturn;
 	}
 
 	Matrix Matrix::CreateRotation(const Vector3& r)
 	{
-		//todo W1
-		assert(false && "Not Implemented Yet");
-		return {};
+
+		Matrix pitchMatrix{ CreateRotationX(r.x) },
+			yawMatrix{ CreateRotationY(r.y) },
+			rollMatrix{ CreateRotationZ(r.z) };
+
+		Matrix rotation{ pitchMatrix * yawMatrix * rollMatrix };
+		return rotation;
 	}
 
 	Matrix Matrix::CreateRotation(float pitch, float yaw, float roll)
@@ -149,9 +175,13 @@ namespace dae {
 
 	Matrix Matrix::CreateScale(float sx, float sy, float sz)
 	{
-		//todo W1
-		assert(false && "Not Implemented Yet");
-		return {};
+		Matrix toReturn{ Matrix{
+					Vector3{ sx, 0, 0 },
+					Vector3{ 0, sy, 0 },
+					Vector3{ 0, 0, sz },
+					Vector3{ 0, 0, 0}
+		} };
+		return toReturn;
 	}
 
 	Matrix Matrix::CreateScale(const Vector3& s)

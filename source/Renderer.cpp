@@ -25,25 +25,35 @@ Renderer::Renderer(SDL_Window* pWindow) :
 void Renderer::Render(Scene* pScene) const
 {
 	Camera& camera = pScene->GetCamera();
+
+
 	auto& materials = pScene->GetMaterials();
 	auto& lights = pScene->GetLights();
 
 	Vector3 rayDirection{};
 	Ray viewRay{};
+	Ray lightRay{};
 	float ar{ m_Width / static_cast<float>(m_Height) };
+
+	float fov = tanf((camera.fovAngle * TO_RADIANS) / 2);
+
+	const Matrix cameraToWorld{ camera.CalculateCameraToWorld() };
+
+
+
 	for (int px{}; px < m_Width; ++px)
 	{
 		for (int py{}; py < m_Height; ++py)
 		{
 
-#pragma region Calculate Ray Direction
+#pragma region Calculate ViewRay Direction
 			float pxc, pyc, cx, cy;
 
 			pxc = px + 0.5f;
 			pyc = py + 0.5f;
 
-			cx = ((2 * pxc / m_Width) - 1) * ar;
-			cy = 1 - ((2 * pyc) / m_Height);
+			cx = ((2 * pxc / m_Width) - 1) * ar * fov;
+			cy = (1 - ((2 * pyc) / m_Height)) * fov;
 
 			Vector3 right, up, look;
 
@@ -54,7 +64,7 @@ void Renderer::Render(Scene* pScene) const
 			look = Vector3{ 0,0,1 };
 
 
-			rayDirection = (right + up + look).Normalized();
+			rayDirection = cameraToWorld.TransformVector((right + up + look).Normalized());
 #pragma endregion
 
 
@@ -77,6 +87,7 @@ void Renderer::Render(Scene* pScene) const
 
 			if (closestHit.didHit)
 			{
+
 				//if hit change the color to the material color
 				finalColor = materials[closestHit.materialIndex]->Shade();
 
@@ -87,6 +98,30 @@ void Renderer::Render(Scene* pScene) const
 				//verify t-values for plane
 				//const float scaled_t = closestHit.t - 500.f;
 				//finalColor = { scaled_t,scaled_t ,scaled_t };
+
+#pragma region Calculate LightRay Direction
+
+				for (auto& light : lights)
+				{
+					Vector3 hitPoint{ camera.origin + viewRay.direction * closestHit.t };
+					Vector3 lightDirection = LightUtils::GetDirectionToLight(light, hitPoint);
+					Vector3 lightDirectionNormal = LightUtils::GetDirectionToLight(light, hitPoint).Normalized();
+
+					hitPoint += closestHit.normal * 0.05;
+
+
+					lightRay.max = lightDirection.Magnitude();
+					lightRay.min = 0.0001;
+					lightRay.origin = hitPoint;
+					lightRay.direction = lightDirection.Normalized();
+
+					if (pScene->DoesHit(lightRay))
+						finalColor *= 0.5;
+				}
+
+
+#pragma endregion
+
 
 			}
 
