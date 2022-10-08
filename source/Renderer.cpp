@@ -1,7 +1,7 @@
 //External includes
 #include "SDL.h"
 #include "SDL_surface.h"
-#include <iostream>;
+#include <iostream>
 
 //Project includes
 #include "Renderer.h"
@@ -89,7 +89,7 @@ void Renderer::Render(Scene* pScene) const
 			{
 
 				//if hit change the color to the material color
-				//finalColor = materials[closestHit.materialIndex]->Shade();
+
 
 				//verify t-values for sphere
 				/*const float scaled_t = (closestHit.t - 50.f) / 40.f;
@@ -132,8 +132,18 @@ void Renderer::Render(Scene* pScene) const
 					case LightingMode::ObservedArea:
 						if (observedArea > 0) finalColor += ColorRGB{ 1,1,1 } *observedArea;
 						break;
-					default:
+					case LightingMode::Radiance:
+						if (observedArea > 0) finalColor += LightUtils::GetRadiance(light, closestHit.origin);
 						break;
+					case LightingMode::BRDF:
+						finalColor += materials[closestHit.materialIndex]->
+							Shade(closestHit, lightRay.direction, viewRay.direction);
+						break;
+					case LightingMode::Combined:
+						if (observedArea > 0) finalColor += materials[closestHit.materialIndex]->
+							Shade(closestHit, lightRay.direction, viewRay.direction) *
+							LightUtils::GetRadiance(light, closestHit.origin) *
+							observedArea;
 					}
 
 				}
