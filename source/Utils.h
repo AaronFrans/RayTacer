@@ -44,8 +44,8 @@ namespace dae
 					hitRecord.materialIndex = sphere.materialIndex;
 					hitRecord.t = tActual;
 
-					Vector3 hitPoint{ ray.origin + ray.direction * hitRecord.t };
-					hitRecord.normal = (hitPoint - sphere.origin).Normalized();
+					hitRecord.origin = ray.origin + ray.direction * hitRecord.t;
+					hitRecord.normal = (hitRecord.origin - sphere.origin).Normalized();
 				}
 
 				return true;
@@ -74,11 +74,12 @@ namespace dae
 			//formula
 			// t = ((origin_plane - origin_ray) dot normal_plane) / direction_ray dot normal_plane
 
-			if (denom > 0)
+			/*if (denom > 0)
 			{
 				hitRecord.didHit = false;
 				return false;
-			}
+			}*/
+
 
 			Vector3 rayToPlane = { plane.origin - ray.origin };
 			float t{ (Vector3::Dot(rayToPlane, plane.normal) / denom) };
@@ -90,6 +91,7 @@ namespace dae
 					hitRecord.materialIndex = plane.materialIndex;
 					hitRecord.t = t;
 					hitRecord.normal = plane.normal;
+					hitRecord.origin = ray.origin + ray.direction * hitRecord.t;
 				}
 				return true;
 			}
@@ -150,9 +152,7 @@ namespace dae
 
 		inline ColorRGB GetRadiance(const Light& light, const Vector3& target)
 		{
-			//todo W3
-			assert(false && "No Implemented Yet!");
-			return {};
+			return light.color * (light.intensity / (light.origin - target).SqrMagnitude());
 		}
 	}
 

@@ -136,9 +136,9 @@ namespace dae {
 		float yawSin{ sinf(yaw) }, yawCos{ cosf(yaw) };
 
 		Matrix toReturn{ Matrix{
-					Vector3{ yawCos, -yawSin, 0 },
+					Vector3{ yawCos, 0, -yawSin },
 					Vector3{ 0, 1, 0 },
-					Vector3{ yawSin, yawCos, 1 },
+					Vector3{ yawSin, 0, yawCos },
 					Vector3{ 0, 0, 0 }
 		} };
 		return toReturn;
@@ -149,8 +149,8 @@ namespace dae {
 		float rollSin{ sinf(roll) }, rollCos{ cosf(roll) };
 
 		Matrix toReturn{ Matrix{
-					Vector3{ rollCos, rollSin, 0 },
-					Vector3{ -rollSin, rollCos, 0 },
+					Vector3{ rollCos, -rollSin, 0 },
+					Vector3{ rollSin, rollCos, 0 },
 					Vector3{ 0, 0, 1 },
 					Vector3{ 0, 0, 0 }
 		} };

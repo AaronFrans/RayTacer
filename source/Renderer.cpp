@@ -89,7 +89,7 @@ void Renderer::Render(Scene* pScene) const
 			{
 
 				//if hit change the color to the material color
-				finalColor = materials[closestHit.materialIndex]->Shade();
+				//finalColor = materials[closestHit.materialIndex]->Shade();
 
 				//verify t-values for sphere
 				/*const float scaled_t = (closestHit.t - 50.f) / 40.f;
@@ -101,25 +101,42 @@ void Renderer::Render(Scene* pScene) const
 
 #pragma region Calculate LightRay Direction
 
+
 				for (auto& light : lights)
 				{
-					Vector3 hitPoint{ camera.origin + viewRay.direction * closestHit.t };
+					Vector3 hitPoint = closestHit.origin + closestHit.normal * 0.05f;
 					Vector3 lightDirection = LightUtils::GetDirectionToLight(light, hitPoint);
 					Vector3 lightDirectionNormal = LightUtils::GetDirectionToLight(light, hitPoint).Normalized();
 
-					hitPoint += closestHit.normal * 0.05;
-
-
 					lightRay.max = lightDirection.Magnitude();
-					lightRay.min = 0.0001;
+					lightRay.min = 0.0001f;
 					lightRay.origin = hitPoint;
 					lightRay.direction = lightDirection.Normalized();
 
-					if (pScene->DoesHit(lightRay))
-						finalColor *= 0.5;
+
+
+					if (m_ShadowsEnabled)
+					{
+						if (pScene->DoesHit(lightRay))
+						{
+							finalColor *= 0.5;
+							continue;
+
+						}
+					}
+
+					float observedArea = Vector3::Dot(closestHit.normal, lightRay.direction);
+
+					switch (m_CurrentLightingMode)
+					{
+					case LightingMode::ObservedArea:
+						if (observedArea > 0) finalColor += ColorRGB{ 1,1,1 } *observedArea;
+						break;
+					default:
+						break;
+					}
+
 				}
-
-
 #pragma endregion
 
 
@@ -143,4 +160,9 @@ void Renderer::Render(Scene* pScene) const
 bool Renderer::SaveBufferToImage() const
 {
 	return SDL_SaveBMP(m_pBuffer, "RayTracing_Buffer.bmp");
+}
+
+void dae::Renderer::CycleLightingMode()
+{
+	m_CurrentLightingMode = static_cast<LightingMode>((static_cast<int>(m_CurrentLightingMode) + 1) % 4);
 }

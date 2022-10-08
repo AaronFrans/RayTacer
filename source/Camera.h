@@ -26,8 +26,8 @@ namespace dae
 		Vector3 up{ Vector3::UnitY };
 		Vector3 right{ Vector3::UnitX };
 
-		float totalPitch{ 45.f };
-		float totalYaw{ 180.f };
+		float totalPitch{ 0 };
+		float totalYaw{ 0 };
 
 		Matrix cameraToWorld{};
 
@@ -35,11 +35,11 @@ namespace dae
 		Matrix CalculateCameraToWorld()
 		{
 			Vector3 worldUp{ Vector3::UnitY };
-			Vector3 cameraRight{ Vector3::Cross(worldUp, forward).Normalized() };
-			Vector3 cameraUp{ Vector3::Cross(forward, cameraRight).Normalized() };
+			Vector3 right{ Vector3::Cross(worldUp, forward).Normalized() };
+			Vector3 up{ Vector3::Cross(forward, right).Normalized() };
 			Matrix cameraToWorld{
-				cameraRight,
-				cameraUp,
+				right,
+				up,
 				forward,
 				origin
 			};
@@ -51,8 +51,9 @@ namespace dae
 		void Update(Timer* pTimer)
 		{
 			const float deltaTime = pTimer->GetElapsed();
-			const float moveSpeed{ 10 };
-			const float rotationSpeed{ 7 };
+			const float defaultMoveSpeed{ 10 };
+			float moveSpeed{ 10 };
+			const float rotationSpeed{ 5 };
 			const Matrix cameraToWorld{ CalculateCameraToWorld() };
 
 			//Keyboard Input
@@ -62,25 +63,28 @@ namespace dae
 			//FOV Buttons
 			if (fovAngle > 25)
 			{
-				fovAngle -= pKeyboardState[SDL_SCANCODE_LEFT] * 0.5;
+				fovAngle -= pKeyboardState[SDL_SCANCODE_LEFT] * 0.5f;
 
 			}
 			else if (fovAngle < 120)
 			{
-				fovAngle += pKeyboardState[SDL_SCANCODE_RIGHT] * 0.5;
+				fovAngle += pKeyboardState[SDL_SCANCODE_RIGHT] * 0.5f;
 			}
 
-
+			// if shift pressed movement * 4
+			if (pKeyboardState[SDL_SCANCODE_LSHIFT] || pKeyboardState[SDL_SCANCODE_RSHIFT])
+				moveSpeed = defaultMoveSpeed * 4;
+			else
+				moveSpeed = defaultMoveSpeed;
 
 			//WS for Forward-Backwards amount
-			Vector3 direction{};
-			direction.z += pKeyboardState[SDL_SCANCODE_W] * moveSpeed;
-			direction.z += pKeyboardState[SDL_SCANCODE_S] * -moveSpeed;
+			origin += pKeyboardState[SDL_SCANCODE_W] * moveSpeed * forward * deltaTime;
+			origin += pKeyboardState[SDL_SCANCODE_S] * -moveSpeed * forward * deltaTime;
 
 
 			//DA for Left-Right amount
-			direction.x += pKeyboardState[SDL_SCANCODE_D] * moveSpeed;
-			direction.x += pKeyboardState[SDL_SCANCODE_A] * -moveSpeed;
+			origin += pKeyboardState[SDL_SCANCODE_D] * moveSpeed * right * deltaTime;
+			origin += pKeyboardState[SDL_SCANCODE_A] * -moveSpeed * right * deltaTime;
 
 			//Mouse Input
 			int mouseX{}, mouseY{};
@@ -89,51 +93,46 @@ namespace dae
 
 
 			// both mouse buttons for Up-Dowm movement
-			if (mouseState & SDL_BUTTON_LMASK && mouseState & SDL_BUTTON_RMASK)
+			// mouse mask link:
+			// https://stackoverflow.com/questions/71030102/how-to-detect-if-left-mousebutton-is-being-held-down-with-sdl2
+			if (mouseState == (SDL_BUTTON_LMASK | SDL_BUTTON_RMASK))
 			{
 				if (mouseY > 0)
 				{
-					direction.y = moveSpeed;
+					origin += moveSpeed * deltaTime * up;
 				}
 				else if (mouseY < 0)
 				{
-					direction.y = -moveSpeed;
+					origin += -moveSpeed * deltaTime * up;
 				}
 			}
 			else if (mouseState & SDL_BUTTON_RMASK)
 			{
-				totalYaw += mouseX * rotationSpeed * deltaTime;
-				totalPitch += mouseY * rotationSpeed * deltaTime;
+				totalYaw += mouseX * rotationSpeed;
+				totalPitch += mouseY * rotationSpeed;
 			}
 			else if (mouseState & SDL_BUTTON_LMASK)
 			{
-				direction.z = mouseY * moveSpeed * deltaTime;
+				//origin = mouseY * moveSpeed * forward;
 
-
-				totalYaw += mouseX * rotationSpeed * deltaTime;
+				totalYaw += mouseX * rotationSpeed;
 			}
+
+
+
 
 			Matrix pitchMatrix{ Matrix::CreateRotationX(totalPitch * TO_RADIANS) };
 			Matrix yawMatrix{ Matrix::CreateRotationY(totalYaw * TO_RADIANS) };
 			Matrix rollMatrix{ Matrix::CreateRotationZ(0) };
 
-			Matrix rotationMatrix{ yawMatrix * pitchMatrix * rollMatrix };
+			Matrix rotationMatrix{ pitchMatrix * yawMatrix * rollMatrix };
 
 			forward = rotationMatrix.TransformVector(Vector3::UnitZ);
 			forward.Normalize();
 
 
-			// if shift pressed movement * 4
-			if (pKeyboardState[SDL_SCANCODE_LSHIFT] || pKeyboardState[SDL_SCANCODE_RSHIFT])
-			{
-				direction *= 4;
-			}
 
 
-			//make direction time dependand and move forward towards camera forward
-			direction *= deltaTime;
-			Vector3 transformedVector = cameraToWorld.TransformVector(direction);
-			origin += transformedVector;
 		}
 	};
 }
