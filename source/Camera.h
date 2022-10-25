@@ -35,8 +35,8 @@ namespace dae
 		Matrix CalculateCameraToWorld()
 		{
 			Vector3 worldUp{ Vector3::UnitY };
-			Vector3 right{ Vector3::Cross(worldUp, forward).Normalized() };
-			Vector3 up{ Vector3::Cross(forward, right).Normalized() };
+			right = { Vector3::Cross(worldUp, forward).Normalized() };
+			up = { Vector3::Cross(forward, right).Normalized() };
 			Matrix cameraToWorld{
 				right,
 				up,
@@ -53,7 +53,7 @@ namespace dae
 			const float deltaTime = pTimer->GetElapsed();
 			const float defaultMoveSpeed{ 10 };
 			float moveSpeed{ 10 };
-			const float rotationSpeed{ 5 };
+			const float rotationSpeed{ 10 * TO_RADIANS};
 			const Matrix cameraToWorld{ CalculateCameraToWorld() };
 
 			//Keyboard Input
@@ -79,12 +79,12 @@ namespace dae
 
 			//WS for Forward-Backwards amount
 			origin += pKeyboardState[SDL_SCANCODE_W] * moveSpeed * forward * deltaTime;
-			origin += pKeyboardState[SDL_SCANCODE_S] * -moveSpeed * forward * deltaTime;
+			origin += pKeyboardState[SDL_SCANCODE_S] * moveSpeed * -forward * deltaTime;
 
 
 			//DA for Left-Right amount
 			origin += pKeyboardState[SDL_SCANCODE_D] * moveSpeed * right * deltaTime;
-			origin += pKeyboardState[SDL_SCANCODE_A] * -moveSpeed * right * deltaTime;
+			origin += pKeyboardState[SDL_SCANCODE_A] * moveSpeed * -right * deltaTime;
 
 			//Mouse Input
 			int mouseX{}, mouseY{};
@@ -113,7 +113,7 @@ namespace dae
 			}
 			else if (mouseState & SDL_BUTTON_LMASK)
 			{
-				//origin = mouseY * moveSpeed * forward;
+				origin += mouseY * moveSpeed * forward * deltaTime;
 
 				totalYaw += mouseX * rotationSpeed;
 			}

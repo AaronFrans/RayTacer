@@ -47,6 +47,9 @@ namespace dae
 
 		std::vector<Plane> m_PlaneGeometries{};
 		std::vector<Sphere> m_SphereGeometries{};
+		//temp
+		//std::vector<Triangle> m_Triangles{};
+		//temp end
 		std::vector<TriangleMesh> m_TriangleMeshGeometries{};
 		std::vector<Light> m_Lights{};
 		std::vector<Material*> m_Materials{};
@@ -102,11 +105,71 @@ namespace dae
 		Scene_W3() = default;
 		~Scene_W3() override = default;
 
-		Scene_W3(const Scene_W2&) = delete;
-		Scene_W3(Scene_W2&&) noexcept = delete;
-		Scene_W3& operator=(const Scene_W2&) = delete;
-		Scene_W3& operator=(Scene_W2&&) noexcept = delete;
+		Scene_W3(const Scene_W3&) = delete;
+		Scene_W3(Scene_W3&&) noexcept = delete;
+		Scene_W3& operator=(const Scene_W3&) = delete;
+		Scene_W3& operator=(Scene_W3&&) noexcept = delete;
 
 		void Initialize() override;
+	};
+
+
+	//+++++++++++++++++++++++++++++++++++++++++
+	//WEEK 4 Test Scene
+	class Scene_W4 final : public Scene
+	{
+	public:
+		Scene_W4() = default;
+		~Scene_W4() override = default;
+
+		Scene_W4(const Scene_W4&) = delete;
+		Scene_W4(Scene_W4&&) noexcept = delete;
+		Scene_W4& operator=(const Scene_W4&) = delete;
+		Scene_W4& operator=(Scene_W4&&) noexcept = delete;
+
+		void Initialize() override;
+		void Update(Timer* pTimer) override;
+	private:
+		TriangleMesh* pMesh{nullptr};
+	};
+
+
+	//+++++++++++++++++++++++++++++++++++++++++
+	//WEEK 4 Refernce
+	class Scene_W4_ReferneceScene final : public Scene
+	{
+	public:
+		Scene_W4_ReferneceScene() = default;
+		~Scene_W4_ReferneceScene() override = default;
+
+		Scene_W4_ReferneceScene(const Scene_W4_ReferneceScene&) = delete;
+		Scene_W4_ReferneceScene(Scene_W4_ReferneceScene&&) noexcept = delete;
+		Scene_W4_ReferneceScene& operator=(const Scene_W4_ReferneceScene&) = delete;
+		Scene_W4_ReferneceScene& operator=(Scene_W4_ReferneceScene&&) noexcept = delete;
+
+		void Initialize() override;
+		void Update(Timer* pTimer) override;
+	private:
+		TriangleMesh* m_pMeshes[3]{nullptr, nullptr, nullptr };
+	};
+
+
+	//+++++++++++++++++++++++++++++++++++++++++
+	//WEEK 4 Bunny Scene
+	class Scene_W4_Bunny final : public Scene
+	{
+	public:
+		Scene_W4_Bunny() = default;
+		~Scene_W4_Bunny() override = default;
+
+		Scene_W4_Bunny(const Scene_W4_Bunny&) = delete;
+		Scene_W4_Bunny(Scene_W4_Bunny&&) noexcept = delete;
+		Scene_W4_Bunny& operator=(const Scene_W4_Bunny&) = delete;
+		Scene_W4_Bunny& operator=(Scene_W4_Bunny&&) noexcept = delete;
+
+		void Initialize() override;
+
+	private:
+		TriangleMesh* pMesh{ nullptr };
 	};
 }

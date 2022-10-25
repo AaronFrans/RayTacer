@@ -119,7 +119,7 @@ void Renderer::Render(Scene* pScene) const
 					{
 						if (pScene->DoesHit(lightRay))
 						{
-							finalColor *= 0.5;
+							finalColor *= 0.95f;
 							continue;
 
 						}

@@ -107,13 +107,94 @@ namespace dae
 			return HitTest_Plane(plane, ray, temp, true);
 		}
 #pragma endregion
+
 #pragma region Triangle HitTest
 		//TRIANGLE HIT-TESTS
 		inline bool HitTest_Triangle(const Triangle& triangle, const Ray& ray, HitRecord& hitRecord, bool ignoreHitRecord = false)
 		{
-			//todo W5
-			assert(false && "No Implemented Yet!");
-			return false;
+			TriangleCullMode mode{};
+			switch (triangle.cullMode)
+			{
+			case TriangleCullMode::BackFaceCulling:
+			{
+				mode = ignoreHitRecord ? TriangleCullMode::FrontFaceCulling : triangle.cullMode;
+			}
+			break;
+			case TriangleCullMode::FrontFaceCulling:
+			{
+				mode = ignoreHitRecord ? TriangleCullMode::BackFaceCulling : triangle.cullMode;
+			}
+			break;
+			default:
+			{
+				mode = triangle.cullMode;
+			}
+			break;
+			}
+
+			float dotNR{ Vector3::Dot(triangle.normal, ray.direction) };
+
+
+			if (mode == TriangleCullMode::FrontFaceCulling && dotNR < 0)
+			{
+				return false;
+			}
+			if (mode == TriangleCullMode::BackFaceCulling && dotNR > 0)
+			{
+				return false;
+			}
+			if (dotNR == 0)
+				return false;
+
+			Vector3 center = (triangle.v0 + triangle.v1 + triangle.v2) / 3;
+
+			Vector3 centerToRayOrigin = center - ray.origin;
+			float t{ Vector3::Dot(centerToRayOrigin, triangle.normal) / dotNR };
+
+			if (t < ray.min || t > ray.max)
+				return false;
+
+
+
+			Vector3 p = ray.origin + t * ray.direction;
+
+			Vector3 edgeToCheck = triangle.v1 - triangle.v0;
+			Vector3 pointToSide = p - triangle.v0;
+			Vector3 edgecheckCross = Vector3::Cross(edgeToCheck, pointToSide).Normalized();
+			float rightSideCheck = Vector3::Dot(triangle.normal,
+				edgecheckCross);
+			if (rightSideCheck < 0)
+
+				return false;
+
+			edgeToCheck = triangle.v0 - triangle.v2;
+			pointToSide = p - triangle.v2;
+			edgecheckCross = Vector3::Cross(edgeToCheck, pointToSide).Normalized();
+			rightSideCheck = Vector3::Dot(triangle.normal, edgecheckCross);
+			if (rightSideCheck < 0)
+
+				return false;
+
+			edgeToCheck = triangle.v2 - triangle.v1;
+			pointToSide = p - triangle.v1;
+			edgecheckCross = Vector3::Cross(edgeToCheck, pointToSide).Normalized();
+			rightSideCheck = Vector3::Dot(triangle.normal, edgecheckCross);
+
+			if (rightSideCheck < 0)
+				return false;
+
+			if (!ignoreHitRecord)
+			{
+				hitRecord.origin = p;
+				hitRecord.t = t;
+				hitRecord.normal = triangle.normal;
+				hitRecord.materialIndex = triangle.materialIndex;
+				hitRecord.didHit = true;
+			}
+
+			return true;
+
+
 		}
 
 		inline bool HitTest_Triangle(const Triangle& triangle, const Ray& ray)
@@ -122,11 +203,38 @@ namespace dae
 			return HitTest_Triangle(triangle, ray, temp, true);
 		}
 #pragma endregion
+
 #pragma region TriangeMesh HitTest
 		inline bool HitTest_TriangleMesh(const TriangleMesh& mesh, const Ray& ray, HitRecord& hitRecord, bool ignoreHitRecord = false)
 		{
-			//todo W5
-			assert(false && "No Implemented Yet!");
+			HitRecord toKeepRecord{};
+			Triangle tri{};
+			tri.cullMode = mesh.cullMode;
+			tri.materialIndex = mesh.materialIndex;
+			for (size_t i = 0; i + 2 < mesh.indices.size(); i += 3)
+			{
+				tri.normal = mesh.transformedNormals[i / 3];
+				tri.v0 = mesh.transformedPositions[mesh.indices[i]];
+				tri.v1 = mesh.transformedPositions[mesh.indices[i + 1]];
+				tri.v2 = mesh.transformedPositions[mesh.indices[i + 2]];
+
+				if (!ignoreHitRecord)
+				{
+					HitTest_Triangle(tri, ray, toKeepRecord, ignoreHitRecord);
+					if (toKeepRecord.t < hitRecord.t)
+					{
+						hitRecord = toKeepRecord;
+
+					}
+				}
+				else
+				{
+					if (GeometryUtils::HitTest_Triangle(tri, ray))
+						return true;
+				}
+			}
+
+
 			return false;
 		}
 
