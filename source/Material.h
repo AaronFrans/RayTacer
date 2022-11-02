@@ -112,7 +112,7 @@ namespace dae
 			ColorRGB specular{}, diffuse{}, f0{ };
 
 			float roughnessSquared{ powf(m_Roughness, 2) };
-			
+
 			float G{ BRDF::GeometryFunction_Smith(hitRecord.normal, -v, l, roughnessSquared) };
 			float D{ BRDF::NormalDistribution_GGX(hitRecord.normal, halfVector, roughnessSquared) };
 

@@ -28,7 +28,7 @@ int main(int argc, char* args[])
 
 #pragma region Testing Vector Products
 
-	float dotResultV3{};
+	//float dotResultV3{};
 
 	//dotResultV3 = Vector3::Dot(Vector3::UnitX, Vector3::UnitX);
 	//std::cout << dotResultV3 << '\n';
@@ -80,8 +80,8 @@ int main(int argc, char* args[])
 	//const auto pScene = new Scene_W2();
 	//const auto pScene = new Scene_W3();
 	//const auto pScene = new Scene_W4();
-	//const auto pScene = new Scene_W4_ReferneceScene();
-	const auto pScene = new Scene_W4_Bunny();
+	const auto pScene = new Scene_W4_ReferneceScene();
+	//const auto pScene = new Scene_W4_Bunny();
 	pScene->Initialize();
 
 	//Start loop

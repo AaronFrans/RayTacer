@@ -4,10 +4,36 @@
 #include "Math.h"
 #include "DataTypes.h"
 
+#define MOLLERTRUMBORE
+
 namespace dae
 {
 	namespace GeometryUtils
 	{
+		inline bool SlabTest_TriangleMesh(const TriangleMesh& mesh, const Ray& ray)
+		{
+			float tXMin{ (mesh.transformedMinAABB.x - ray.origin.x) / ray.direction.x };
+			float tXMax{ (mesh.transformedMaxAABB.x - ray.origin.x) / ray.direction.x };
+
+			float tMin{ std::min(tXMin, tXMax) };
+			float tMax{ std::max(tXMin, tXMax) };
+
+			float tYMin{ (mesh.transformedMinAABB.y - ray.origin.y) / ray.direction.y };
+			float tYMax{ (mesh.transformedMaxAABB.y - ray.origin.y) / ray.direction.y };
+
+			tMin = std::min(tMin, std::min(tYMin, tYMax));
+			tMax = std::max(tMax, std::max(tYMin, tYMax));
+
+			float tZMin{ (mesh.transformedMinAABB.z - ray.origin.z) / ray.direction.z };
+			float tZMax{ (mesh.transformedMaxAABB.z - ray.origin.z) / ray.direction.z };
+
+			tMin = std::min(tMin, std::min(tZMin, tZMax));
+			tMax = std::max(tMax, std::max(tZMin, tZMax));
+
+
+			return tMax > 0 && tMax > tMin;
+		}
+
 #pragma region Sphere HitTest
 		//SPHERE HIT-TESTS
 		inline bool HitTest_Sphere(const Sphere& sphere, const Ray& ray, HitRecord& hitRecord, bool ignoreHitRecord = false)
@@ -33,7 +59,6 @@ namespace dae
 			float t1{ t - projectedToEdge };
 			float t2{ t + projectedToEdge };
 
-			// TODO:check for negatives
 			float tActual{ t1 > t2 ? t2 : t1 };
 			if (ray.min < tActual && tActual < ray.max)
 			{
@@ -63,6 +88,7 @@ namespace dae
 		}
 
 #pragma endregion
+
 #pragma region Plane HitTest
 		//PLANE HIT-TESTS
 		inline bool HitTest_Plane(const Plane& plane, const Ray& ray, HitRecord& hitRecord, bool ignoreHitRecord = false)
@@ -72,13 +98,13 @@ namespace dae
 			float denom = Vector3::Dot(ray.direction, plane.normal);
 
 			//formula
-			// t = ((origin_plane - origin_ray) dot normal_plane) / direction_ray dot normal_plane
+			//t = ((origin_plane - origin_ray) dot normal_plane) / direction_ray dot normal_plane
 
-			/*if (denom > 0)
+			if (denom > 0)
 			{
 				hitRecord.didHit = false;
 				return false;
-			}*/
+			}
 
 
 			Vector3 rayToPlane = { plane.origin - ray.origin };
@@ -112,39 +138,95 @@ namespace dae
 		//TRIANGLE HIT-TESTS
 		inline bool HitTest_Triangle(const Triangle& triangle, const Ray& ray, HitRecord& hitRecord, bool ignoreHitRecord = false)
 		{
-			TriangleCullMode mode{};
+			TriangleCullMode mode{ triangle.cullMode };
 			switch (triangle.cullMode)
 			{
 			case TriangleCullMode::BackFaceCulling:
 			{
-				mode = ignoreHitRecord ? TriangleCullMode::FrontFaceCulling : triangle.cullMode;
+				switch (ignoreHitRecord)
+				{
+				case true:
+					mode = TriangleCullMode::FrontFaceCulling;
+					break;
+				case false:
+					mode = triangle.cullMode;
+					break;
+				}
+
 			}
 			break;
 			case TriangleCullMode::FrontFaceCulling:
 			{
-				mode = ignoreHitRecord ? TriangleCullMode::BackFaceCulling : triangle.cullMode;
-			}
-			break;
-			default:
-			{
-				mode = triangle.cullMode;
+				switch (ignoreHitRecord)
+				{
+				case true:
+					mode = TriangleCullMode::BackFaceCulling;
+					break;
+				case false:
+					mode = triangle.cullMode;
+					break;
+				}
 			}
 			break;
 			}
 
 			float dotNR{ Vector3::Dot(triangle.normal, ray.direction) };
 
+			if (abs(dotNR) < FLT_EPSILON) return false;
 
-			if (mode == TriangleCullMode::FrontFaceCulling && dotNR < 0)
+
+			switch (mode)
 			{
-				return false;
+			case dae::TriangleCullMode::FrontFaceCulling:
+				if (dotNR < 0)
+				{
+					return false;
+				}
+				break;
+			case dae::TriangleCullMode::BackFaceCulling:
+				if (dotNR > 0)
+				{
+					return false;
+				}
+				break;
 			}
-			if (mode == TriangleCullMode::BackFaceCulling && dotNR > 0)
+
+
+
+#ifdef MOLLERTRUMBORE
+
+			const Vector3 edge{ triangle.v1 - triangle.v0 };
+			const Vector3 edge2{ triangle.v2 - triangle.v0 };
+
+			const Vector3 rayEdgeCross{ Vector3::Cross(ray.direction, edge2) };
+
+			const float f{ 1.0f / Vector3::Dot(edge, rayEdgeCross) };
+			const Vector3 triangleV0ToRay{ ray.origin - triangle.v0 };
+			const float u{ f * Vector3::Dot(triangleV0ToRay,rayEdgeCross) };
+
+			if (u < 0.0f || u > 1.0f) return false;
+
+			const Vector3 q{ Vector3::Cross(triangleV0ToRay, edge) };
+			const float v{ f * Vector3::Dot(ray.direction, q) };
+
+			if (v < 0.0f || u + v > 1.0f) return false;
+
+
+			const float t{ f * Vector3::Dot(edge2, q) };
+
+			if (t < ray.min || t > ray.max) return false;
+
+			if (!ignoreHitRecord)
 			{
-				return false;
+				hitRecord.didHit = true;
+				hitRecord.materialIndex = triangle.materialIndex;
+				hitRecord.origin = ray.origin + ray.direction * t;
+				hitRecord.normal = triangle.normal;
+				hitRecord.t = t;
 			}
-			if (dotNR == 0)
-				return false;
+			return true;
+
+#else
 
 			Vector3 center = (triangle.v0 + triangle.v1 + triangle.v2) / 3;
 
@@ -155,16 +237,13 @@ namespace dae
 				return false;
 
 
-
 			Vector3 p = ray.origin + t * ray.direction;
 
 			Vector3 edgeToCheck = triangle.v1 - triangle.v0;
 			Vector3 pointToSide = p - triangle.v0;
 			Vector3 edgecheckCross = Vector3::Cross(edgeToCheck, pointToSide).Normalized();
-			float rightSideCheck = Vector3::Dot(triangle.normal,
-				edgecheckCross);
+			float rightSideCheck = Vector3::Dot(triangle.normal, edgecheckCross);
 			if (rightSideCheck < 0)
-
 				return false;
 
 			edgeToCheck = triangle.v0 - triangle.v2;
@@ -172,14 +251,12 @@ namespace dae
 			edgecheckCross = Vector3::Cross(edgeToCheck, pointToSide).Normalized();
 			rightSideCheck = Vector3::Dot(triangle.normal, edgecheckCross);
 			if (rightSideCheck < 0)
-
 				return false;
 
 			edgeToCheck = triangle.v2 - triangle.v1;
 			pointToSide = p - triangle.v1;
 			edgecheckCross = Vector3::Cross(edgeToCheck, pointToSide).Normalized();
 			rightSideCheck = Vector3::Dot(triangle.normal, edgecheckCross);
-
 			if (rightSideCheck < 0)
 				return false;
 
@@ -194,6 +271,9 @@ namespace dae
 
 			return true;
 
+#endif // MOLLERTRUMBORE
+
+
 
 		}
 
@@ -207,6 +287,10 @@ namespace dae
 #pragma region TriangeMesh HitTest
 		inline bool HitTest_TriangleMesh(const TriangleMesh& mesh, const Ray& ray, HitRecord& hitRecord, bool ignoreHitRecord = false)
 		{
+
+			if (!SlabTest_TriangleMesh(mesh, ray))
+				return false;
+
 			HitRecord toKeepRecord{};
 			Triangle tri{};
 			tri.cullMode = mesh.cullMode;
@@ -218,19 +302,21 @@ namespace dae
 				tri.v1 = mesh.transformedPositions[mesh.indices[i + 1]];
 				tri.v2 = mesh.transformedPositions[mesh.indices[i + 2]];
 
-				if (!ignoreHitRecord)
+
+				switch (ignoreHitRecord)
 				{
+				case true:
+					if (GeometryUtils::HitTest_Triangle(tri, ray))
+						return true;
+					break;
+				case false:
+
 					HitTest_Triangle(tri, ray, toKeepRecord, ignoreHitRecord);
 					if (toKeepRecord.t < hitRecord.t)
 					{
 						hitRecord = toKeepRecord;
-
 					}
-				}
-				else
-				{
-					if (GeometryUtils::HitTest_Triangle(tri, ray))
-						return true;
+					break;
 				}
 			}
 
@@ -243,7 +329,10 @@ namespace dae
 			HitRecord temp{};
 			return HitTest_TriangleMesh(mesh, ray, temp, true);
 		}
+
+
 #pragma endregion
+
 	}
 
 	namespace LightUtils
@@ -251,11 +340,14 @@ namespace dae
 		//Direction from target to light
 		inline Vector3 GetDirectionToLight(const Light& light, const Vector3 origin)
 		{
-			if (light.type == LightType::Point)
+			switch (light.type)
 			{
+			case LightType::Point:
 				return Vector3{ light.origin - origin };
+				break;
+			default:
+				return{};
 			}
-			return{};
 		}
 
 		inline ColorRGB GetRadiance(const Light& light, const Vector3& target)
@@ -336,6 +428,8 @@ namespace dae
 
 			return true;
 		}
+
+
 #pragma warning(pop)
 	}
 }

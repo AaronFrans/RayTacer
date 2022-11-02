@@ -33,8 +33,8 @@ namespace dae
 	struct Triangle
 	{
 		Triangle() = default;
-		Triangle(const Vector3& _v0, const Vector3& _v1, const Vector3& _v2, const Vector3& _normal):
-			v0{_v0}, v1{_v1}, v2{_v2}, normal{_normal.Normalized()}{}
+		Triangle(const Vector3& _v0, const Vector3& _v1, const Vector3& _v2, const Vector3& _normal) :
+			v0{ _v0 }, v1{ _v1 }, v2{ _v2 }, normal{ _normal.Normalized() }{}
 
 		Triangle(const Vector3& _v0, const Vector3& _v1, const Vector3& _v2) :
 			v0{ _v0 }, v1{ _v1 }, v2{ _v2 }
@@ -57,8 +57,8 @@ namespace dae
 	struct TriangleMesh
 	{
 		TriangleMesh() = default;
-		TriangleMesh(const std::vector<Vector3>& _positions, const std::vector<int>& _indices, TriangleCullMode _cullMode):
-		positions(_positions), indices(_indices), cullMode(_cullMode)
+		TriangleMesh(const std::vector<Vector3>& _positions, const std::vector<int>& _indices, TriangleCullMode _cullMode) :
+			positions(_positions), indices(_indices), cullMode(_cullMode)
 		{
 			//Calculate Normals
 			CalculateNormals();
@@ -78,11 +78,18 @@ namespace dae
 		std::vector<int> indices{};
 		unsigned char materialIndex{};
 
-		TriangleCullMode cullMode{TriangleCullMode::BackFaceCulling};
+		TriangleCullMode cullMode{ TriangleCullMode::BackFaceCulling };
 
 		Matrix rotationTransform{};
 		Matrix translationTransform{};
 		Matrix scaleTransform{};
+
+		Vector3 minAABB;
+		Vector3 maxAABB;
+
+		Vector3 transformedMinAABB;
+		Vector3 transformedMaxAABB;
+
 
 		std::vector<Vector3> transformedPositions{};
 		std::vector<Vector3> transformedNormals{};
@@ -106,28 +113,44 @@ namespace dae
 		{
 			int startIndex = static_cast<int>(positions.size());
 
-			positions.push_back(triangle.v0);
-			positions.push_back(triangle.v1);
-			positions.push_back(triangle.v2);
+			positions.emplace_back(triangle.v0);
+			positions.emplace_back(triangle.v1);
+			positions.emplace_back(triangle.v2);
 
-			indices.push_back(startIndex);
-			indices.push_back(++startIndex);
-			indices.push_back(++startIndex);
+			indices.emplace_back(startIndex);
+			indices.emplace_back(++startIndex);
+			indices.emplace_back(++startIndex);
 
-			normals.push_back(triangle.normal);
+			normals.emplace_back(triangle.normal);
 
 			//Not ideal, but making sure all vertices are updated
-			if(!ignoreTransformUpdate)
+			if (!ignoreTransformUpdate)
 				UpdateTransforms();
 		}
 
 		void CalculateNormals()
 		{
-			for (size_t i = 0; i + 2 < indices.size(); i+= 3)
+			for (size_t i = 0; i + 2 < indices.size(); i += 3)
 			{
-				const Vector3 edgeV0V1 = positions[indices[i + 1]] - positions[indices[i]];
-				const Vector3 edgeV0V2 = positions[indices[i + 2]] - positions[indices[i]];
-				normals.push_back(Vector3::Cross(edgeV0V1, edgeV0V2).Normalized());
+				const Vector3& edgeV0V1 = positions[indices[i + 1]] - positions[indices[i]];
+				const Vector3& edgeV0V2 = positions[indices[i + 2]] - positions[indices[i]];
+				normals.emplace_back(Vector3::Cross(edgeV0V1, edgeV0V2).Normalized());
+			}
+		}
+
+		void UpdateAABB()
+		{
+			if (positions.size() > 0)
+			{
+				minAABB = positions[0];
+				maxAABB = positions[0];
+
+
+				for (auto& p : positions)
+				{
+					minAABB = Vector3::Min(p, minAABB);
+					maxAABB = Vector3::Max(p, minAABB);
+				}
 			}
 		}
 
@@ -135,21 +158,65 @@ namespace dae
 		{
 			//Calculate Final Transform 
 			const auto finalTransform = scaleTransform * rotationTransform * translationTransform;
+			const auto finalNormalTransform = rotationTransform * translationTransform;
 
-			transformedPositions.resize(positions.size());
+			transformedPositions.clear();
+			transformedPositions.reserve(positions.size());
 			//Transform Positions (positions > transformedPositions)
 			for (size_t i = 0; i < positions.size(); i++)
 			{
-				transformedPositions[i] = finalTransform.TransformPoint(positions[i]);
+				transformedPositions.emplace_back(finalTransform.TransformPoint(positions[i]));
 			}
 
-			transformedNormals.resize(normals.size());
+			transformedNormals.clear();
+			transformedNormals.reserve(positions.size());
 			//Transform Normals (normals > transformedNormals)
 			for (size_t i = 0; i < normals.size(); i++)
 			{
-				transformedNormals[i] = finalTransform.TransformVector(normals[i]);
+				transformedNormals.emplace_back(finalNormalTransform.TransformVector(normals[i]));
 			}
+
+
+
+			UpdateTransformedAABB(finalTransform);
 		}
+
+
+
+		void UpdateTransformedAABB(const Matrix& finalTransform)
+		{
+			Vector3 tMinAABB{ finalTransform.TransformPoint(minAABB) };
+			Vector3 tMaxAABB{ tMinAABB };
+			// max, min, min
+			Vector3 tAABB{ finalTransform.TransformPoint({maxAABB.x, minAABB.y, minAABB.z}) };
+			tMinAABB = Vector3::Min(tMinAABB, tAABB);
+			tMaxAABB = Vector3::Max(tMaxAABB, tAABB);
+			// max, min, max
+			tAABB = finalTransform.TransformPoint({ maxAABB.x, minAABB.y, maxAABB.z });
+			tMinAABB = Vector3::Min(tMinAABB, tAABB);
+			tMaxAABB = Vector3::Max(tMaxAABB, tAABB);
+			//min, min, max
+			tAABB = finalTransform.TransformPoint({ minAABB.x, minAABB.y, maxAABB.z });
+			tMinAABB = Vector3::Min(tMinAABB, tAABB);
+			tMaxAABB = Vector3::Max(tMaxAABB, tAABB);
+			//max, max, min
+			tAABB = finalTransform.TransformPoint({ maxAABB.x, maxAABB.y, minAABB.z });
+			tMinAABB = Vector3::Min(tMinAABB, tAABB);
+			tMaxAABB = Vector3::Max(tMaxAABB, tAABB);
+			//max, max, max
+			tAABB = finalTransform.TransformPoint({ maxAABB.x, maxAABB.y, maxAABB.z });
+			tMinAABB = Vector3::Min(tMinAABB, tAABB);
+			tMaxAABB = Vector3::Max(tMaxAABB, tAABB);
+			//min, max, max
+			tAABB = finalTransform.TransformPoint({ minAABB.x, maxAABB.y, maxAABB.z });
+			tMinAABB = Vector3::Min(tMinAABB, tAABB);
+			tMaxAABB = Vector3::Max(tMaxAABB, tAABB);
+
+			transformedMinAABB = tMinAABB;
+			transformedMaxAABB = tMaxAABB;
+		}
+
+
 	};
 #pragma endregion
 #pragma region LIGHT
@@ -172,6 +239,7 @@ namespace dae
 #pragma region MISC
 	struct Ray
 	{
+
 		Vector3 origin{};
 		Vector3 direction{};
 

@@ -37,7 +37,8 @@ namespace dae
 			Vector3 worldUp{ Vector3::UnitY };
 			right = { Vector3::Cross(worldUp, forward).Normalized() };
 			up = { Vector3::Cross(forward, right).Normalized() };
-			Matrix cameraToWorld{
+
+			cameraToWorld = Matrix{
 				right,
 				up,
 				forward,
@@ -53,8 +54,8 @@ namespace dae
 			const float deltaTime = pTimer->GetElapsed();
 			const float defaultMoveSpeed{ 10 };
 			float moveSpeed{ 10 };
-			const float rotationSpeed{ 10 * TO_RADIANS};
-			const Matrix cameraToWorld{ CalculateCameraToWorld() };
+			float mouseMoveSpeed{ 2 };
+			const float rotationSpeed{ 10 * TO_RADIANS };
 
 			//Keyboard Input
 			const uint8_t* pKeyboardState = SDL_GetKeyboardState(nullptr);
@@ -97,14 +98,7 @@ namespace dae
 			// https://stackoverflow.com/questions/71030102/how-to-detect-if-left-mousebutton-is-being-held-down-with-sdl2
 			if (mouseState == (SDL_BUTTON_LMASK | SDL_BUTTON_RMASK))
 			{
-				if (mouseY > 0)
-				{
-					origin += moveSpeed * deltaTime * up;
-				}
-				else if (mouseY < 0)
-				{
-					origin += -moveSpeed * deltaTime * up;
-				}
+				origin += mouseY * mouseMoveSpeed * deltaTime * up;
 			}
 			else if (mouseState & SDL_BUTTON_RMASK)
 			{
@@ -113,7 +107,7 @@ namespace dae
 			}
 			else if (mouseState & SDL_BUTTON_LMASK)
 			{
-				origin += mouseY * moveSpeed * forward * deltaTime;
+				origin += mouseY * mouseMoveSpeed * forward * deltaTime;
 
 				totalYaw += mouseX * rotationSpeed;
 			}
@@ -129,9 +123,6 @@ namespace dae
 
 			forward = rotationMatrix.TransformVector(Vector3::UnitZ);
 			forward.Normalize();
-
-
-
 
 		}
 	};

@@ -75,7 +75,7 @@ namespace dae {
 
 		for (auto& pMesh : m_TriangleMeshGeometries)
 		{
-		
+
 			if (GeometryUtils::HitTest_TriangleMesh(pMesh, ray))
 				return true;
 		}
@@ -313,7 +313,7 @@ namespace dae {
 		Scene::Update(pTimer);
 
 		pMesh->RotateY(PI_DIV_2 * pTimer->GetTotal());
-		
+
 		pMesh->UpdateTransforms();
 
 	}
@@ -374,12 +374,14 @@ namespace dae {
 
 	void Scene_W4_ReferneceScene::Update(Timer* pTimer)
 	{
+		Scene::Update(pTimer);
 
 		const float yawAngle{ (cos(pTimer->GetTotal()) + 1.f) / 2.f * PI_2 };
 
 		for (const auto m : m_pMeshes)
 		{
 			m->RotateY(yawAngle);
+			m->UpdateAABB();
 			m->UpdateTransforms();
 		}
 
@@ -407,11 +409,23 @@ namespace dae {
 
 		pMesh->Scale({ 2.f, 2.f, 2.f });
 
+		pMesh->UpdateAABB();
 		pMesh->UpdateTransforms();
 
 		//Light
 		AddPointLight(Vector3{ 0.f, 5.f, 5.f }, 50.f, ColorRGB{ 1.f, 0.61f, .45f });//backLight
 		AddPointLight(Vector3{ -2.5f, 5.f, -5.f }, 70.f, ColorRGB{ 1.f, 0.8f, .45f });//front light lef
 		AddPointLight(Vector3{ 2.5f, 2.5f, -5.f }, 50.f, ColorRGB{ .34f, 0.47f, .68f });
+	}
+	void Scene_W4_Bunny::Update(Timer* pTimer)
+	{
+		Scene::Update(pTimer);
+
+		const float yawAngle{ (cos(pTimer->GetTotal()) + 1.f) / 2.f * PI_2 };
+
+		pMesh->RotateY(yawAngle);
+		pMesh->UpdateAABB();
+		pMesh->UpdateTransforms();
+
 	}
 }
