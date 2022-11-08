@@ -13,13 +13,13 @@ namespace dae
 		 */
 		static ColorRGB Lambert(float kd, const ColorRGB& cd)
 		{
-			return (kd * cd) / static_cast<float>(M_PI);
+			return (kd * cd) * PI_INVERSE;
 		}
 
 		static ColorRGB Lambert(const ColorRGB& kd, const ColorRGB& cd)
 		{
 
-			return (kd * cd) / static_cast<float>(M_PI);
+			return (kd * cd) * PI_INVERSE;
 		}
 
 		/**
@@ -54,9 +54,10 @@ namespace dae
 		 */
 		static ColorRGB FresnelFunction_Schlick(const Vector3& h, const Vector3& v, const ColorRGB& f0)
 		{
+			float powVar{ 1 - Vector3::Dot(h, v) };
 			return f0 +
-				(ColorRGB{ 1,1,1 } - f0) *
-				powf((1 - (Vector3::Dot(h, v))), 5);
+				(ColorRGB{ 1 - f0.r, 1 - f0.g, 1 - f0.b }) *
+				(powVar * powVar * powVar * powVar * powVar);
 		}
 
 		/**
@@ -69,11 +70,11 @@ namespace dae
 		static float NormalDistribution_GGX(const Vector3& n, const Vector3& h, float roughness)
 		{
 
-			float roughnessSquared{ powf(roughness, 2) }, piF{ static_cast<float>(M_PI) },
-				normalHalfVectorSquared{ powf(Vector3::Dot(n, h), 2) };
+			float roughnessSquared{ roughness * roughness }, piF{ static_cast<float>(M_PI) },
+				normalHalfVectorSquared{ Square(Vector3::Dot(n, h)) };
 
 			return  roughnessSquared / (piF *
-				powf(normalHalfVectorSquared * (roughnessSquared - 1) + 1, 2));
+				Square(normalHalfVectorSquared * (roughnessSquared - 1) + 1));
 		}
 
 
@@ -86,11 +87,9 @@ namespace dae
 		 */
 		static float GeometryFunction_SchlickGGX(const Vector3& n, const Vector3& v, float roughness)
 		{
-			float dotNV(Vector3::Dot(n, v));
+			float dotNV(std::max(Vector3::Dot(n, v), 0.0f));
 
-			if (dotNV < 0)  dotNV = 0;
-
-			float k{ powf(roughness + 1, 2) / 8 };
+			float k{ Square(roughness + 1) * 0.125f };
 
 			return dotNV / ((dotNV) * (1 - k) + k);
 		}

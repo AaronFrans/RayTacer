@@ -2,9 +2,6 @@
 #include "SDL.h"
 #include "SDL_surface.h"
 #include <iostream>
-#include <thread>
-#include <future>//async stuff
-#include <ppl.h>//parrallel stuff
 
 //Project includes
 #include "Renderer.h"
@@ -13,6 +10,10 @@
 #include "Material.h"
 #include "Scene.h"
 #include "Utils.h"
+#include <thread>
+#include <future>//async stuff
+#include <ppl.h>//parrallel stuff
+
 
 using namespace dae;
 
@@ -27,6 +28,9 @@ Renderer::Renderer(SDL_Window* pWindow) :
 	//Initialize
 	SDL_GetWindowSize(pWindow, &m_Width, &m_Height);
 	m_pBufferPixels = static_cast<uint32_t*>(m_pBuffer->pixels);
+	m_WidthDivision = 1.f / m_Width;
+	m_HeightDivision = 1.f / m_Height;
+	m_AR = m_Width / static_cast<float>(m_Height);
 }
 
 void Renderer::Render(Scene* pScene) const
@@ -36,11 +40,6 @@ void Renderer::Render(Scene* pScene) const
 
 	auto& materials = pScene->GetMaterials();
 	auto& lights = pScene->GetLights();
-
-	float ar{ m_Width / static_cast<float>(m_Height) };
-
-	float fov = tan((camera.fovAngle * TO_RADIANS) / 2.f);
-
 
 	const uint32_t numPixels = m_Width * m_Height;
 
@@ -78,7 +77,7 @@ void Renderer::Render(Scene* pScene) const
 					const uint32_t pixelIndexEnd = currentPixelIndex + taskSize;
 					for (uint32_t pixelIndex{ currentPixelIndex }; pixelIndex < pixelIndexEnd; ++pixelIndex)
 					{
-						RenderPixel(pScene, pixelIndex, fov, ar, camera, lights, materials);
+						RenderPixel(pScene, pixelIndex, camera, lights, materials);
 					}
 
 				})
@@ -101,16 +100,14 @@ void Renderer::Render(Scene* pScene) const
 	concurrency::parallel_for(0u, numPixels,
 		[=, this](int i)
 		{
-			RenderPixel(pScene, i, fov, ar, camera, lights, materials);
+			RenderPixel(pScene, i, camera, lights, materials);
 		});
-
-
 #else
 
 	//Synchronous logic
 	for (uint32_t i = 0; i < numPixels; ++i)
 	{
-		RenderPixel(pScene, i, fov, ar, camera, lights, materials);
+		RenderPixel(pScene, i, camera, lights, materials);
 	}
 
 #endif // defined(ASYNC)
@@ -121,9 +118,9 @@ void Renderer::Render(Scene* pScene) const
 	SDL_UpdateWindowSurface(m_pWindow);
 }
 
-void Renderer::RenderPixel(Scene* scene, uint32_t pixelIndex, float fov, float aspectRatio, const Camera& camera, const std::vector<Light>& lights, const std::vector<Material*>& materials) const
+
+void Renderer::RenderPixel(Scene* scene, uint32_t pixelIndex, const Camera& camera, const std::vector<Light>& lights, const std::vector<Material*>& materials) const
 {
-	//pixelIndex *= 2;
 	float pxc, pyc, cx, cy;
 
 
@@ -133,8 +130,8 @@ void Renderer::RenderPixel(Scene* scene, uint32_t pixelIndex, float fov, float a
 	pxc = px + 0.5f;
 	pyc = py + 0.5f;
 
-	cx = ((2 * pxc / m_Width) - 1) * aspectRatio * fov;
-	cy = (1 - ((2 * pyc) / m_Height)) * fov;
+	cx = ((2 * pxc * m_WidthDivision) - 1) * m_AR * camera.cameraFOV;
+	cy = (1 - ((2 * pyc) * m_HeightDivision)) * camera.cameraFOV;
 
 	Vector3 right, up, look;
 
@@ -144,13 +141,13 @@ void Renderer::RenderPixel(Scene* scene, uint32_t pixelIndex, float fov, float a
 
 	look = Vector3{ 0,0,1 };
 
-	Ray viewRay{};
+
 
 	Vector3 rayDirection{ camera.cameraToWorld.TransformVector((right + up + look)).Normalized() };
 
 
 	//Ray we cast from the camera to the pixel
-	viewRay = Ray{ camera.origin, rayDirection };
+	Ray viewRay{ camera.origin, rayDirection };
 
 	//Color containing info about possible hit
 	ColorRGB finalColor{};
@@ -199,25 +196,29 @@ void Renderer::RenderPixel(Scene* scene, uint32_t pixelIndex, float fov, float a
 				}
 			}
 
-			const float observedArea{ std::max(Vector3::Dot(closestHit.normal, lightDirection), 0.0f) };
-			switch (m_CurrentLightingMode)
+			const float observedArea{ Vector3::Dot(closestHit.normal, lightDirection)};
+			if (observedArea > 0)
 			{
-			case LightingMode::ObservedArea:
-				finalColor += ColorRGB{ observedArea, observedArea, observedArea };
-				break;
-			case LightingMode::Radiance:
-				finalColor += LightUtils::GetRadiance(light, closestHit.origin);
-				break;
-			case LightingMode::BRDF:
-				finalColor += materials[closestHit.materialIndex]->
-					Shade(closestHit, lightDirection, viewRay.direction);
-				break;
-			case LightingMode::Combined:
-				finalColor += materials[closestHit.materialIndex]->
-					Shade(closestHit, lightDirection, viewRay.direction) *
-					LightUtils::GetRadiance(light, closestHit.origin) *
-					observedArea;
+				switch (m_CurrentLightingMode)
+				{
+				case LightingMode::ObservedArea:
+					finalColor += ColorRGB{ observedArea, observedArea, observedArea };
+					break;
+				case LightingMode::Radiance:
+					finalColor += LightUtils::GetRadiance(light, closestHit.origin);
+					break;
+				case LightingMode::BRDF:
+					finalColor += materials[closestHit.materialIndex]->
+						Shade(closestHit, lightDirection, viewRay.direction);
+					break;
+				case LightingMode::Combined:
+					finalColor += materials[closestHit.materialIndex]->
+						Shade(closestHit, lightDirection, viewRay.direction) *
+						LightUtils::GetRadiance(light, closestHit.origin) *
+						observedArea;
+				}
 			}
+		
 
 		}
 
@@ -232,10 +233,7 @@ void Renderer::RenderPixel(Scene* scene, uint32_t pixelIndex, float fov, float a
 		static_cast<uint8_t>(finalColor.g * 255),
 		static_cast<uint8_t>(finalColor.b * 255));
 
-	//m_pBufferPixels[px + 1 + (py * m_Width)] = SDL_MapRGB(m_pBuffer->format,
-	//	static_cast<uint8_t>(finalColor.r * 255),
-	//	static_cast<uint8_t>(finalColor.g * 255),
-	//	static_cast<uint8_t>(finalColor.b * 255));
+
 
 }
 

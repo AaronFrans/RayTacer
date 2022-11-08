@@ -10,6 +10,7 @@ namespace dae {
 	const Vector3 Vector3::UnitY = Vector3{ 0, 1, 0 };
 	const Vector3 Vector3::UnitZ = Vector3{ 0, 0, 1 };
 	const Vector3 Vector3::Zero = Vector3{ 0, 0, 0 };
+	const Vector3 Vector3::Unit = Vector3{ 1, 1, 1 };
 
 	Vector3::Vector3(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
 
@@ -39,29 +40,27 @@ namespace dae {
 
 	Vector3 Vector3::Normalized() const
 	{
-		const float m = Magnitude();
-		return { x / m, y / m, z / m };
+		const float m = 1 / Magnitude();
+		return { x * m, y * m, z * m };
 	}
 
 	float Vector3::Dot(const Vector3& v1, const Vector3& v2)
 	{
 		//todo W1
-		float dot{ v1.x * v2.x +
-					v1.y * v2.y +
-					v1.z * v2.z };
-		return dot;
+		return { 
+			v1.x * v2.x +
+			v1.y * v2.y +
+			v1.z * v2.z 
+		};
 	}
 
 	Vector3 Vector3::Cross(const Vector3& v1, const Vector3& v2)
 	{
-		float x, y, z;
-
-		x = v1.y * v2.z - v1.z * v2.y;
-		y = v1.z * v2.x - v1.x * v2.z;
-		z = v1.x * v2.y - v1.y * v2.x;
-
-		Vector3 cross{ x, y, z };
-		return cross;
+		return { 
+			v1.y * v2.z - v1.z * v2.y,
+			v1.z * v2.x - v1.x * v2.z,
+			v1.x * v2.y - v1.y * v2.x 
+		};
 	}
 
 	Vector3 Vector3::Project(const Vector3& v1, const Vector3& v2)

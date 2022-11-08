@@ -29,7 +29,9 @@ namespace dae
 
 		void Render(Scene* pScene) const;
 
-		void RenderPixel(Scene* scene, uint32_t pixelIndex, float fov, float aspectRatio,
+
+
+		void RenderPixel(Scene* scene, uint32_t pixelIndex,
 			const Camera& camera, const std::vector<Light>& lights, const std::vector<Material*>& materials) const;
 
 		bool SaveBufferToImage() const;
@@ -57,6 +59,10 @@ namespace dae
 		uint32_t* m_pBufferPixels{};
 
 		int m_Width{};
+		float m_WidthDivision;
 		int m_Height{};
+		float m_HeightDivision = 1.f / m_Height;
+
+		float m_AR{};
 	};
 }

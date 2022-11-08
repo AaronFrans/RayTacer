@@ -2,6 +2,8 @@
 #include "Utils.h"
 #include "Material.h"
 
+//#define BVH
+
 namespace dae {
 
 #pragma region Base Scene
@@ -30,18 +32,10 @@ namespace dae {
 	{
 
 		HitRecord toKeepRecord{};
+
 		for (auto& pPlanes : m_PlaneGeometries)
 		{
 			GeometryUtils::HitTest_Plane(pPlanes, ray, toKeepRecord);
-			if (toKeepRecord.t < hitRecord.t)
-			{
-				hitRecord = toKeepRecord;
-			}
-		}
-
-		for (auto& pSphere : m_SphereGeometries)
-		{
-			GeometryUtils::HitTest_Sphere(pSphere, ray, toKeepRecord);
 			if (toKeepRecord.t < hitRecord.t)
 			{
 				hitRecord = toKeepRecord;
@@ -56,6 +50,16 @@ namespace dae {
 				hitRecord = toKeepRecord;
 			}
 		}
+		
+		for (auto& pSphere : m_SphereGeometries)
+		{
+			GeometryUtils::HitTest_Sphere(pSphere, ray, toKeepRecord);
+			if (toKeepRecord.t < hitRecord.t)
+			{
+				hitRecord = toKeepRecord;
+			}
+		}
+
 
 	}
 
@@ -67,18 +71,19 @@ namespace dae {
 				return true;
 		}
 
+		for (auto& pMesh : m_TriangleMeshGeometries)
+		{
+		
+			if (GeometryUtils::HitTest_TriangleMesh(pMesh, ray))
+				return true;
+		}
+		
 		for (auto& pSphere : m_SphereGeometries)
 		{
 			if (GeometryUtils::HitTest_Sphere(pSphere, ray))
 				return true;
 		}
 
-		for (auto& pMesh : m_TriangleMeshGeometries)
-		{
-
-			if (GeometryUtils::HitTest_TriangleMesh(pMesh, ray))
-				return true;
-		}
 
 		return false;
 	}
@@ -208,7 +213,7 @@ namespace dae {
 	void Scene_W3::Initialize()
 	{
 
-		m_Camera = Camera{ { 0.f, 3.f, -9.f }, 45.f };
+		m_Camera = Camera{ { 0.f, 3.f, -9.f }, 90.f };
 
 		const auto matCT_GrayRoughMetal = AddMaterial(new Material_CookTorrence({ .972f, .960f, .915f }, 1.f, 1.f));
 		const auto matCT_GrayMediumMetal = AddMaterial(new Material_CookTorrence({ .972f, .960f, .915f }, 1.f, .6f));
@@ -255,7 +260,7 @@ namespace dae {
 	}
 	void Scene_W4::Initialize()
 	{
-		m_Camera = { { 0.f, 1.f, -5.f }, 45.f };
+		m_Camera = { { 0.f, 1.f, -5.f }, 90.f };
 
 		//Materials
 		const auto matLambert_GrayBlue = AddMaterial(new Material_Lambert({ 0.49f, 0.57f, 0.57f }, 1.f));
@@ -317,11 +322,12 @@ namespace dae {
 		pMesh->UpdateTransforms();
 
 	}
+
 	void Scene_W4_ReferneceScene::Initialize()
 	{
 		sceneName = "Reference Scene";
-		m_Camera.origin = { 0.f, 3.0f, -9.0f };
-		m_Camera.fovAngle = 45.0f;
+
+		m_Camera = { { 0.f, 3.f, -10.f }, 45.f };
 
 		const auto matCT_GrayRoughMetal = AddMaterial(new Material_CookTorrence({ 0.972f, 0.960f, 0.915f }, 1.0f, 1.0f));
 		const auto matCT_GrayMediumMetal = AddMaterial(new Material_CookTorrence({ 0.972f, 0.960f, 0.915f }, 1.0f, 0.6f));
@@ -353,16 +359,19 @@ namespace dae {
 		m_pMeshes[0] = AddTriangleMesh(TriangleCullMode::BackFaceCulling, matLambert_White);
 		m_pMeshes[0]->AppendTriangle(baseTriangle, true);
 		m_pMeshes[0]->Translate({ -1.75f, 4.5f, 0.0f });
+		m_pMeshes[0]->UpdateAABB();
 		m_pMeshes[0]->UpdateTransforms();
 
 		m_pMeshes[1] = AddTriangleMesh(TriangleCullMode::FrontFaceCulling, matLambert_White);
 		m_pMeshes[1]->AppendTriangle(baseTriangle, true);
 		m_pMeshes[1]->Translate({ 0.0f, 4.5f, 0.0f });
+		m_pMeshes[1]->UpdateAABB();
 		m_pMeshes[1]->UpdateTransforms();
 
 		m_pMeshes[2] = AddTriangleMesh(TriangleCullMode::NoCulling, matLambert_White);
 		m_pMeshes[2]->AppendTriangle(baseTriangle, true);
 		m_pMeshes[2]->Translate({ 1.75f, 4.5f, 0.0f });
+		m_pMeshes[2]->UpdateAABB();
 		m_pMeshes[2]->UpdateTransforms();
 
 		//Light
@@ -378,10 +387,9 @@ namespace dae {
 
 		const float yawAngle{ (cos(pTimer->GetTotal()) + 1.f) / 2.f * PI_2 };
 
-		for (const auto m : m_pMeshes)
+		for (const auto& m : m_pMeshes)
 		{
 			m->RotateY(yawAngle);
-			m->UpdateAABB();
 			m->UpdateTransforms();
 		}
 
@@ -389,6 +397,7 @@ namespace dae {
 
 	void Scene_W4_Bunny::Initialize()
 	{
+
 		m_Camera = { { 0.f, 3.f, -10.f }, 45.f };
 
 		//Materials
@@ -409,9 +418,10 @@ namespace dae {
 
 		pMesh->Scale({ 2.f, 2.f, 2.f });
 
+#ifndef BVH
 		pMesh->UpdateAABB();
+#endif
 		pMesh->UpdateTransforms();
-
 		//Light
 		AddPointLight(Vector3{ 0.f, 5.f, 5.f }, 50.f, ColorRGB{ 1.f, 0.61f, .45f });//backLight
 		AddPointLight(Vector3{ -2.5f, 5.f, -5.f }, 70.f, ColorRGB{ 1.f, 0.8f, .45f });//front light lef
@@ -424,7 +434,6 @@ namespace dae {
 		const float yawAngle{ (cos(pTimer->GetTotal()) + 1.f) / 2.f * PI_2 };
 
 		pMesh->RotateY(yawAngle);
-		pMesh->UpdateAABB();
 		pMesh->UpdateTransforms();
 
 	}

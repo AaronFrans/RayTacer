@@ -16,11 +16,20 @@ namespace dae
 			origin{ _origin },
 			fovAngle{ _fovAngle }
 		{
+			cameraFOV = tanf(TO_RADIANS * fovAngle / 2.0f);
 		}
 
 
 		Vector3 origin{};
 		float fovAngle{ 90.f };
+		float cameraFOV{ 1.0f };
+		float minAngle{ 45 };
+		float maxAngle{ 160 };
+
+		float defaultMoveSpeed{ 10 };
+		float moveSpeed{ 10 };
+		float mouseMoveSpeed{ 2 };
+		float rotationSpeed{ 10 * TO_RADIANS };
 
 		Vector3 forward{ Vector3::UnitZ };
 		Vector3 up{ Vector3::UnitY };
@@ -36,7 +45,7 @@ namespace dae
 		{
 			Vector3 worldUp{ Vector3::UnitY };
 			right = { Vector3::Cross(worldUp, forward).Normalized() };
-			up = { Vector3::Cross(forward, right).Normalized() };
+			up = { Vector3::Cross(forward, right) };
 
 			cameraToWorld = Matrix{
 				right,
@@ -52,24 +61,28 @@ namespace dae
 		void Update(Timer* pTimer)
 		{
 			const float deltaTime = pTimer->GetElapsed();
-			const float defaultMoveSpeed{ 10 };
-			float moveSpeed{ 10 };
-			float mouseMoveSpeed{ 2 };
-			const float rotationSpeed{ 10 * TO_RADIANS };
+
 
 			//Keyboard Input
 			const uint8_t* pKeyboardState = SDL_GetKeyboardState(nullptr);
 
 
 			//FOV Buttons
-			if (fovAngle > 25)
-			{
-				fovAngle -= pKeyboardState[SDL_SCANCODE_LEFT] * 0.5f;
+			// Calculate new fov with keyboard inputs
+			float newFOV{ fovAngle };
+			newFOV += pKeyboardState[SDL_SCANCODE_LEFT] * 0.5f;
+			newFOV -= pKeyboardState[SDL_SCANCODE_RIGHT] * 0.5f;
 
-			}
-			else if (fovAngle < 120)
+			float deltaFOV{ newFOV - fovAngle };
+
+			// Clamp the new fov angle and calculate the tangent
+			if (deltaFOV > 0 || deltaFOV < 0)
 			{
-				fovAngle += pKeyboardState[SDL_SCANCODE_RIGHT] * 0.5f;
+				newFOV = std::max(newFOV, minAngle);
+				newFOV = std::min(newFOV, maxAngle);
+
+				fovAngle = newFOV;
+				cameraFOV = tanf(TO_RADIANS * fovAngle * 0.5f);
 			}
 
 			// if shift pressed movement * 4
@@ -91,25 +104,20 @@ namespace dae
 			int mouseX{}, mouseY{};
 			const uint32_t mouseState = SDL_GetRelativeMouseState(&mouseX, &mouseY);
 
-
-
-			// both mouse buttons for Up-Dowm movement
-			// mouse mask link:
-			// https://stackoverflow.com/questions/71030102/how-to-detect-if-left-mousebutton-is-being-held-down-with-sdl2
-			if (mouseState == (SDL_BUTTON_LMASK | SDL_BUTTON_RMASK))
+			switch (mouseState)
 			{
-				origin += mouseY * mouseMoveSpeed * deltaTime * up;
-			}
-			else if (mouseState & SDL_BUTTON_RMASK)
-			{
-				totalYaw += mouseX * rotationSpeed;
-				totalPitch += mouseY * rotationSpeed;
-			}
-			else if (mouseState & SDL_BUTTON_LMASK)
-			{
+			case SDL_BUTTON_LMASK:
 				origin += mouseY * mouseMoveSpeed * forward * deltaTime;
 
 				totalYaw += mouseX * rotationSpeed;
+				break;
+			case SDL_BUTTON_RMASK:
+				totalYaw += mouseX * rotationSpeed;
+				totalPitch += mouseY * rotationSpeed;
+				break;
+			case SDL_BUTTON_X2:
+				origin += mouseY * mouseMoveSpeed * deltaTime * up;
+				break;
 			}
 
 
