@@ -6,7 +6,7 @@
 
 #define MOLLERTRUMBORE
 
-#define BVH
+//#define BVH
 
 
 namespace dae
@@ -164,14 +164,14 @@ namespace dae
 
 #ifdef MOLLERTRUMBORE
 
-			const Vector3 edge{ triangle.v1 - triangle.v0 };
-			const Vector3 edge2{ triangle.v2 - triangle.v0 };
+			Vector3 edge{ triangle.v1 - triangle.v0 };
+			Vector3 edge2{ triangle.v2 - triangle.v0 };
 
-			const Vector3 rayEdgeCross{ Vector3::Cross(ray.direction, edge2) };
+			Vector3 rayEdgeCross{ Vector3::Cross(ray.direction, edge2) };
 
-			const float f{ 1.0f / Vector3::Dot(edge, rayEdgeCross) };
-			const Vector3 triangleV0ToRay{ ray.origin - triangle.v0 };
-			const float u{ f * Vector3::Dot(triangleV0ToRay,rayEdgeCross) };
+			float f{ 1.0f / Vector3::Dot(edge, rayEdgeCross) };
+			Vector3 triangleV0ToRay{ ray.origin - triangle.v0 };
+			float u{ f * Vector3::Dot(triangleV0ToRay,rayEdgeCross) };
 
 			if (u < 0.0f || u > 1.0f) return false;
 
@@ -256,26 +256,25 @@ namespace dae
 
 		inline bool SlabTest_TriangleMesh(const TriangleMesh& mesh, const Ray& ray)
 		{
-			float tXMin{ (mesh.transformedMinAABB.x - ray.origin.x) * ray.inversedDirection.x };
-			float tXMax{ (mesh.transformedMaxAABB.x - ray.origin.x) * ray.inversedDirection.x };
+			const float tx1 = (mesh.transformedMinAABB.x - ray.origin.x) * ray.inversedDirection.x;
+			const float tx2 = (mesh.transformedMaxAABB.x - ray.origin.x) * ray.inversedDirection.x;
 
-			float tMin{ std::min(tXMin, tXMax) };
-			float tMax{ std::max(tXMin, tXMax) };
+			float tmin = std::min(tx1, tx2);
+			float tmax = std::max(tx1, tx2);
 
-			float tYMin{ (mesh.transformedMinAABB.y - ray.origin.y) * ray.inversedDirection.y };
-			float tYMax{ (mesh.transformedMaxAABB.y - ray.origin.y) * ray.inversedDirection.y };
+			const float ty1 = (mesh.transformedMinAABB.y - ray.origin.y) * ray.inversedDirection.y;
+			const float ty2 = (mesh.transformedMaxAABB.y - ray.origin.y) * ray.inversedDirection.y;
 
-			tMin = std::min(tMin, std::min(tYMin, tYMax));
-			tMax = std::max(tMax, std::max(tYMin, tYMax));
+			tmin = std::max(tmin, std::min(ty1, ty2));
+			tmax = std::min(tmax, std::max(ty1, ty2));
 
-			float tZMin{ (mesh.transformedMinAABB.z - ray.origin.z) * ray.inversedDirection.z };
-			float tZMax{ (mesh.transformedMaxAABB.z - ray.origin.z) * ray.inversedDirection.z };
+			const float tz1 = (mesh.transformedMinAABB.z - ray.origin.z) * ray.inversedDirection.z;
+			const float tz2 = (mesh.transformedMaxAABB.z - ray.origin.z) * ray.inversedDirection.z;
 
-			tMin = std::min(tMin, std::min(tZMin, tZMax));
-			tMax = std::max(tMax, std::max(tZMin, tZMax));
+			tmin = std::max(tmin, std::min(tz1, tz2));
+			tmax = std::min(tmax, std::max(tz1, tz2));
 
-
-			return tMax > 0 && tMax > tMin;
+			return tmax > 0 && tmax >= tmin;
 		}
 
 #ifdef BVH
