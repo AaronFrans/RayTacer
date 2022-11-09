@@ -6,7 +6,7 @@
 
 #define MOLLERTRUMBORE
 
-//#define BVH
+#define BVH
 
 
 namespace dae
@@ -254,22 +254,22 @@ namespace dae
 #pragma region TriangeMesh HitTest
 
 
-		inline bool SlabTest_TriangleMesh(const TriangleMesh& mesh, const Ray& ray)
+		inline bool SlabTest_TriangleMesh(const Ray& ray, const Vector3& minAABB, const Vector3& maxAABB)
 		{
-			const float tx1 = (mesh.transformedMinAABB.x - ray.origin.x) * ray.inversedDirection.x;
-			const float tx2 = (mesh.transformedMaxAABB.x - ray.origin.x) * ray.inversedDirection.x;
+			const float tx1 = (minAABB.x - ray.origin.x) * ray.inversedDirection.x;
+			const float tx2 = (maxAABB.x - ray.origin.x) * ray.inversedDirection.x;
 
 			float tmin = std::min(tx1, tx2);
 			float tmax = std::max(tx1, tx2);
 
-			const float ty1 = (mesh.transformedMinAABB.y - ray.origin.y) * ray.inversedDirection.y;
-			const float ty2 = (mesh.transformedMaxAABB.y - ray.origin.y) * ray.inversedDirection.y;
+			const float ty1 = (minAABB.y - ray.origin.y) * ray.inversedDirection.y;
+			const float ty2 = (maxAABB.y - ray.origin.y) * ray.inversedDirection.y;
 
 			tmin = std::max(tmin, std::min(ty1, ty2));
 			tmax = std::min(tmax, std::max(ty1, ty2));
 
-			const float tz1 = (mesh.transformedMinAABB.z - ray.origin.z) * ray.inversedDirection.z;
-			const float tz2 = (mesh.transformedMaxAABB.z - ray.origin.z) * ray.inversedDirection.z;
+			const float tz1 = (minAABB.z - ray.origin.z) * ray.inversedDirection.z;
+			const float tz2 = (maxAABB.z - ray.origin.z) * ray.inversedDirection.z;
 
 			tmin = std::max(tmin, std::min(tz1, tz2));
 			tmax = std::min(tmax, std::max(tz1, tz2));
@@ -283,13 +283,13 @@ namespace dae
 
 			BVHNode& node{ mesh.pBvhNodes[bvhNodeIdx] };
 
-			if (!SlabTest_TriangleMesh(mesh, ray)) return;
+			if (!SlabTest_TriangleMesh(ray, node.minAABB, node.MaxAABB)) return;
 
 			// If the current node is not the end node, recursively search the two child nodes 
 			if (!node.IsLeaf())
 			{
 				IntersectBVH(mesh, ray, sharedTriangle, hitRecord, hasHit, curClosestHit, ignoreHitRecord, node.leftChild);
-				IntersectBVH(mesh, ray, sharedTriangle, hitRecord, hasHit, curClosestHit, ignoreHitRecord, node.leftChild + 1);
+				IntersectBVH(mesh, ray, sharedTriangle, hitRecord, hasHit, curClosestHit, ignoreHitRecord, node.rightChild);
 				return;
 			}
 
@@ -332,7 +332,7 @@ namespace dae
 			tri.materialIndex = mesh.materialIndex;
 			IntersectBVH(mesh, ray, tri, hitRecord, hasHit, tempRecord, ignoreHitRecord, 0);
 #else
-			if (!SlabTest_TriangleMesh(mesh, ray))
+			if (!SlabTest_TriangleMesh(ray, mesh.transformedMinAABB, mesh.transformedMaxAABB))
 				return false;
 
 			HitRecord tempRecord{};
@@ -341,7 +341,7 @@ namespace dae
 			Triangle tri{};
 			tri.cullMode = mesh.cullMode;
 			tri.materialIndex = mesh.materialIndex;
-			for (size_t i = 0; i + 2 < mesh.indices.size(); i += 3)
+			for (size_t i{}; i + 2 < mesh.indices.size(); i += 3)
 			{
 				tri.v0 = mesh.transformedPositions[mesh.indices[i]];
 				tri.v1 = mesh.transformedPositions[mesh.indices[i + 1]];
@@ -439,7 +439,7 @@ namespace dae
 			}
 
 			//Precompute normals
-			for (uint64_t index = 0; index < indices.size(); index += 3)
+			for (uint64_t index{}; index < indices.size(); index += 3)
 			{
 				uint32_t i0 = indices[index];
 				uint32_t i1 = indices[index + 1];
@@ -451,13 +451,13 @@ namespace dae
 
 				if (isnan(normal.x))
 				{
-					int k = 0;
+					int k{};
 				}
 
 				normal.Normalize();
 				if (isnan(normal.x))
 				{
-					int k = 0;
+					int k{};
 				}
 
 				normals.push_back(normal);

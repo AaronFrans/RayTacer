@@ -4,7 +4,8 @@
 #include "Math.h"
 #include "vector"
 
-//#define BVH
+//bvh via: https://jacco.ompf2.com/2022/04/13/how-to-build-a-bvh-part-1-basics/
+#define BVH
 
 namespace dae
 {
@@ -30,6 +31,7 @@ namespace dae
 		Vector3 minAABB{};
 		Vector3 MaxAABB{};
 		unsigned int leftChild{};
+		unsigned int rightChild{};
 		unsigned int firstIndex{};
 		unsigned int indexCount{};
 		bool IsLeaf() { return indexCount > 0; };
@@ -59,7 +61,7 @@ namespace dae
 	struct Bin
 	{
 		AABB bounds{};
-		int indicesCount{};
+		int indexCount{};
 	};
 
 
@@ -180,7 +182,7 @@ namespace dae
 
 		void CalculateNormals()
 		{
-			for (size_t i = 0; i + 2 < indices.size(); i += 3)
+			for (size_t i{}; i + 2 < indices.size(); i += 3)
 			{
 				const Vector3& edgeV0V1 = positions[indices[i + 1]] - positions[indices[i]];
 				const Vector3& edgeV0V2 = positions[indices[i + 2]] - positions[indices[i]];
@@ -212,14 +214,14 @@ namespace dae
 
 			transformedPositions.clear();
 			transformedPositions.reserve(positions.size());
-			for (int i = 0; i < positions.size(); ++i)
+			for (int i{}; i < positions.size(); ++i)
 			{
 				transformedPositions.emplace_back(finalTranformation.TransformPoint(positions[i]));
 			}
 
 			transformedNormals.clear();
 			transformedNormals.reserve(normals.size());
-			for (int i = 0; i < normals.size(); ++i)
+			for (int i{}; i < normals.size(); ++i)
 			{
 				transformedNormals.emplace_back(normalTranformation.TransformVector(normals[i]));
 			}
@@ -256,36 +258,34 @@ namespace dae
 
 			for (unsigned int i{ node.firstIndex }; i < node.firstIndex + node.indexCount; ++i)
 			{
-				Vector3& curVertex{ transformedPositions[indices[i]] };
-				node.minAABB = Vector3::Min(node.minAABB, curVertex);
-				node.MaxAABB = Vector3::Max(node.MaxAABB, curVertex);
+				Vector3& currentVertex{ transformedPositions[indices[i]] };
+				node.minAABB = Vector3::Min(node.minAABB, currentVertex);
+				node.MaxAABB = Vector3::Max(node.MaxAABB, currentVertex);
 			}
 		}
 
 		void Subdivide(int nodeIdx)
 		{
-			BVHNode& node{ pBvhNodes[nodeIdx] };
+			BVHNode& currentNode{ pBvhNodes[nodeIdx] };
 
-			if (node.indexCount <= 6) return;
+			if (currentNode.indexCount <= 5) return;
 
-			// Determine split axis and position using SAH
 			int axis{ -1 };
-			float splitPos{ 0 };
-			float cost{ FindBestSplitPlane(node, axis, splitPos) };
+			float splitPosition{ 0 };
+			float cost{ FindBestSplitPlane(currentNode, axis, splitPosition) };
 
-			const float noSplitCost{ CalculateNodeCost(node) };
+			const float noSplitCost{ CalculateNodeCost(currentNode) };
 			if (cost >= noSplitCost) return;
 
-			// in-place partition
-			int i{ static_cast<int>(node.firstIndex) };
-			int j{ i + static_cast<int>(node.indexCount) - 1 };
+			int i{ static_cast<int>(currentNode.firstIndex) };
+			int j{ i + static_cast<int>(currentNode.indexCount) - 1 };
 			while (i <= j)
 			{
 				const Vector3 centroid{ (transformedPositions[indices[i]] +
 					transformedPositions[indices[i + 1]] +
 					transformedPositions[indices[i + 2]]) / 3.0f };
 
-				if (centroid[axis] < splitPos)
+				if (centroid[axis] < splitPosition)
 				{
 					i += 3;
 				}
@@ -301,37 +301,36 @@ namespace dae
 				}
 			}
 
-			// abort split if one of the sides is empty
-			unsigned int leftCount{ i - node.firstIndex };
-			if (leftCount == 0 || leftCount == node.indexCount)
+			unsigned int leftCount{ i - currentNode.firstIndex };
+			if (leftCount == 0 || leftCount == currentNode.indexCount)
 			{
 				return;
 			}
 
-			// Create child nodes
 			unsigned int leftChildIdx{ ++bvhNodesUsed };
 			unsigned int rightChildIdx{ ++bvhNodesUsed };
 
-			node.leftChild = leftChildIdx;
+			currentNode.leftChild = leftChildIdx;
+			currentNode.rightChild = rightChildIdx;
 
-			pBvhNodes[leftChildIdx].firstIndex = node.firstIndex;
+			pBvhNodes[leftChildIdx].firstIndex = currentNode.firstIndex;
 			pBvhNodes[leftChildIdx].indexCount = leftCount;
 			pBvhNodes[rightChildIdx].firstIndex = i;
-			pBvhNodes[rightChildIdx].indexCount = node.indexCount - leftCount;
-			node.indexCount = 0;
+			pBvhNodes[rightChildIdx].indexCount = currentNode.indexCount - leftCount;
+			currentNode.indexCount = 0;
 
 			UpdateBVHNodeBounds(leftChildIdx);
 			UpdateBVHNodeBounds(rightChildIdx);
 
-			// Recurse
+
 			Subdivide(leftChildIdx);
 			Subdivide(rightChildIdx);
 		}
 
-		float FindBestSplitPlane(BVHNode& node, int& axis, float& splitPos) const
+		float FindBestSplitPlane(BVHNode& node, int& axis, float& splitPosition) const
 		{
 			float bestCost{ FLT_MAX };
-			for (int curAxis{}; curAxis < 3; curAxis++)
+			for (int currrentAxis{}; currrentAxis < 3; ++currrentAxis)
 			{
 				float boundsMin{ FLT_MAX };
 				float boundsMax{ FLT_MIN };
@@ -341,17 +340,17 @@ namespace dae
 						transformedPositions[indices[node.firstIndex + i + 1]] +
 						transformedPositions[indices[node.firstIndex + i + 2]])
 						* 0.3333333f };
-					boundsMin = std::min(centroid[curAxis], boundsMin);
-					boundsMax = std::max(centroid[curAxis], boundsMax);
+					boundsMin = std::min(centroid[currrentAxis], boundsMin);
+					boundsMax = std::max(centroid[currrentAxis], boundsMax);
 				}
 
 				if (abs(boundsMin - boundsMax) < FLT_EPSILON) continue;
 
-				const int nrBins{ 8 };
+				const int nrOfBins{ 8 };
 
-				Bin bins[nrBins];
+				Bin bins[nrOfBins];
 
-				float scale{ nrBins / (boundsMax - boundsMin) };
+				float scale{ nrOfBins / (boundsMax - boundsMin) };
 
 				for (unsigned int i{}; i < node.indexCount; i += 3)
 				{
@@ -361,50 +360,49 @@ namespace dae
 
 					const Vector3 centroid{ (v0 + v1 + v2) / 3.0f };
 
-					int binIdx{ std::min(nrBins - 1, static_cast<int>((centroid[curAxis] - boundsMin) * scale)) };
+					int binIdx{ std::min(nrOfBins - 1, static_cast<int>((centroid[currrentAxis] - boundsMin) * scale)) };
 
-					bins[binIdx].indicesCount += 3;
+					bins[binIdx].indexCount += 3;
 					float areaBeforeGrow{ bins[binIdx].bounds.GetArea() };
 					bins[binIdx].bounds.Grow(v0);
 					bins[binIdx].bounds.Grow(v1);
 					bins[binIdx].bounds.Grow(v2);
 					float area{ bins[binIdx].bounds.max.x };
-					int dada = 0;
 				}
 
-				float leftArea[nrBins - 1]{};
-				float rightArea[nrBins - 1]{};
-				float leftCount[nrBins - 1]{};
-				float rightCount[nrBins - 1]{};
+				float leftArea[nrOfBins - 1]{};
+				float rightArea[nrOfBins - 1]{};
+				float leftCount[nrOfBins - 1]{};
+				float rightCount[nrOfBins - 1]{};
 
 				AABB leftBox;
 				AABB rightBox;
 				float leftSum{};
 				float rightSum{};
 
-				for (int i{}; i < nrBins - 1; ++i)
+				for (int i{}; i < nrOfBins - 1; ++i)
 				{
-					leftSum += bins[i].indicesCount;
+					leftSum += bins[i].indexCount;
 					leftCount[i] = leftSum;
 					leftBox.Grow(bins[i].bounds);
 					leftArea[i] = leftBox.GetArea();
 
-					rightSum += bins[nrBins - 1 - i].indicesCount;
-					rightCount[nrBins - 2 - i] = rightSum;
-					rightBox.Grow(bins[nrBins - 1 - i].bounds);
-					rightArea[nrBins - 2 - i] = rightBox.GetArea();
+					rightSum += bins[nrOfBins - 1 - i].indexCount;
+					rightCount[nrOfBins - 2 - i] = rightSum;
+					rightBox.Grow(bins[nrOfBins - 1 - i].bounds);
+					rightArea[nrOfBins - 2 - i] = rightBox.GetArea();
 				}
 
-				scale = (boundsMax - boundsMin) / nrBins;
+				scale = (boundsMax - boundsMin) / nrOfBins;
 
-				for (unsigned int i{}; i < nrBins - 1; ++i)
+				for (unsigned int i{}; i < nrOfBins - 1; ++i)
 				{
 					const float planeCost{ leftCount[i] * leftArea[i] + rightCount[i] * rightArea[i] };
 
 					if (planeCost < bestCost)
 					{
-						splitPos = boundsMin + scale * (i + 1);
-						axis = curAxis;
+						splitPosition = boundsMin + scale * (i + 1);
+						axis = currrentAxis;
 						bestCost = planeCost;
 					}
 				}
@@ -436,14 +434,14 @@ namespace dae
 
 				if (centroid[axis] < pos)
 				{
-					leftCount++;
+					++leftCount;
 					leftBox.Grow(v0);
 					leftBox.Grow(v1);
 					leftBox.Grow(v2);
 				}
 				else
 				{
-					rightCount++;
+					++rightCount;
 					rightBox.Grow(v0);
 					rightBox.Grow(v1);
 					rightBox.Grow(v2);

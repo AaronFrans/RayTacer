@@ -2,7 +2,7 @@
 #include "Utils.h"
 #include "Material.h"
 
-//#define BVH
+#define BVH
 
 namespace dae {
 
@@ -157,7 +157,7 @@ namespace dae {
 	void Scene_W1::Initialize()
 	{
 		//default: Material id0 >> SolidColor Material (RED)
-		constexpr unsigned char matId_Solid_Red = 0;
+		constexpr unsigned char matId_Solid_Red{};
 		const unsigned char matId_Solid_Blue = AddMaterial(new Material_SolidColor{ colors::Blue });
 
 		const unsigned char matId_Solid_Yellow = AddMaterial(new Material_SolidColor{ colors::Yellow });
