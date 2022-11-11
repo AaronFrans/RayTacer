@@ -106,21 +106,21 @@ namespace dae
 
 		ColorRGB Shade(const HitRecord& hitRecord = {}, const Vector3& l = {}, const Vector3& v = {}) override
 		{
-			ColorRGB f0{ m_Metalness > 0 ? m_Albedo : ColorRGB{ 0.04f, 0.04f, 0.04f } };
+			const ColorRGB f0{ m_Metalness > 0 ? m_Albedo : ColorRGB{ 0.04f, 0.04f, 0.04f } };
 
-			Vector3 halfVector{ (v + -l).Normalized() };
+			const Vector3 halfVector{ (v + -l).Normalized() };
 
-			float roughnessSquared{ m_Roughness * m_Roughness };
+			const float roughnessSquared{ m_Roughness * m_Roughness };
 
-			float G{ BRDF::GeometryFunction_Smith(hitRecord.normal, -v, l, roughnessSquared) };
-			float D{ BRDF::NormalDistribution_GGX(hitRecord.normal, halfVector, roughnessSquared) };
+			const float G{ BRDF::GeometryFunction_Smith(hitRecord.normal, -v, l, roughnessSquared) };
+			const float D{ BRDF::NormalDistribution_GGX(hitRecord.normal, halfVector, roughnessSquared) };
 
 
 
-			ColorRGB F{ F = BRDF::FresnelFunction_Schlick(halfVector, v, f0) };
+			const ColorRGB F{ BRDF::FresnelFunction_Schlick(halfVector, v, f0) };
 			ColorRGB DFG{ D * F * G };
 
-			ColorRGB specular{ DFG / (4 * (Vector3::Dot(-v, hitRecord.normal) * Vector3::Dot(l, hitRecord.normal))) };
+			const ColorRGB specular{ DFG / (4 * (Vector3::Dot(-v, hitRecord.normal) * Vector3::Dot(l, hitRecord.normal))) };
 
 			ColorRGB diffuse{};
 

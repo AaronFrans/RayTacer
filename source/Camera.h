@@ -23,8 +23,6 @@ namespace dae
 		Vector3 origin{};
 		float fovAngle{ 90.f };
 		float cameraFOV{ 1.0f };
-		float minAngle{ 45 };
-		float maxAngle{ 160 };
 
 		float defaultMoveSpeed{ 10 };
 		float moveSpeed{ 10 };
@@ -66,39 +64,20 @@ namespace dae
 			//Keyboard Input
 			const uint8_t* pKeyboardState = SDL_GetKeyboardState(nullptr);
 
-
-			//FOV Buttons
-			// Calculate new fov with keyboard inputs
-			float newFOV{ fovAngle };
-			newFOV += pKeyboardState[SDL_SCANCODE_LEFT] * 0.5f;
-			newFOV -= pKeyboardState[SDL_SCANCODE_RIGHT] * 0.5f;
-
-			float deltaFOV{ newFOV - fovAngle };
-
-			// Clamp the new fov angle and calculate the tangent
-			if (deltaFOV > 0 || deltaFOV < 0)
-			{
-				newFOV = std::max(newFOV, minAngle);
-				newFOV = std::min(newFOV, maxAngle);
-
-				fovAngle = newFOV;
-				cameraFOV = tanf(TO_RADIANS * fovAngle * 0.5f);
-			}
-
 			// if shift pressed movement * 4
 			if (pKeyboardState[SDL_SCANCODE_LSHIFT] || pKeyboardState[SDL_SCANCODE_RSHIFT])
 				moveSpeed = defaultMoveSpeed * 4;
 			else
 				moveSpeed = defaultMoveSpeed;
+		
+			//WS for Forward-Backwards amount 
+			origin += (pKeyboardState[SDL_SCANCODE_W] | pKeyboardState[SDL_SCANCODE_UP]) * moveSpeed * forward * deltaTime;
+			origin += (pKeyboardState[SDL_SCANCODE_S] | pKeyboardState[SDL_SCANCODE_DOWN]) * moveSpeed * -forward * deltaTime;
 
-			//WS for Forward-Backwards amount
-			origin += pKeyboardState[SDL_SCANCODE_W] * moveSpeed * forward * deltaTime;
-			origin += pKeyboardState[SDL_SCANCODE_S] * moveSpeed * -forward * deltaTime;
 
-
-			//DA for Left-Right amount
-			origin += pKeyboardState[SDL_SCANCODE_D] * moveSpeed * right * deltaTime;
-			origin += pKeyboardState[SDL_SCANCODE_A] * moveSpeed * -right * deltaTime;
+			//DA for Left-Right amount				 
+			origin += (pKeyboardState[SDL_SCANCODE_D] | pKeyboardState[SDL_SCANCODE_RIGHT]) * moveSpeed * right * deltaTime;
+			origin += (pKeyboardState[SDL_SCANCODE_A] | pKeyboardState[SDL_SCANCODE_LEFT]) * moveSpeed * -right * deltaTime;
 
 			//Mouse Input
 			int mouseX{}, mouseY{};
@@ -113,14 +92,12 @@ namespace dae
 				break;
 			case SDL_BUTTON_RMASK:
 				totalYaw += mouseX * rotationSpeed;
-				totalPitch += mouseY * rotationSpeed;
+				totalPitch -= mouseY * rotationSpeed;
 				break;
 			case SDL_BUTTON_X2:
 				origin += mouseY * mouseMoveSpeed * deltaTime * up;
 				break;
 			}
-
-
 
 
 			Matrix pitchMatrix{ Matrix::CreateRotationX(totalPitch * TO_RADIANS) };

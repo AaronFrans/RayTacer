@@ -143,11 +143,11 @@ void Renderer::RenderPixel(Scene* scene, uint32_t pixelIndex, const Camera& came
 
 
 
-	Vector3 rayDirection{ camera.cameraToWorld.TransformVector((right + up + look)).Normalized() };
+	const Vector3 rayDirection{ camera.cameraToWorld.TransformVector((right + up + look)).Normalized() };
 
 
 	//Ray we cast from the camera to the pixel
-	Ray viewRay{ camera.origin, rayDirection };
+	const Ray viewRay{ camera.origin, rayDirection };
 
 	//Color containing info about possible hit
 	ColorRGB finalColor{};
@@ -177,17 +177,17 @@ void Renderer::RenderPixel(Scene* scene, uint32_t pixelIndex, const Camera& came
 		//const float scaled_t = closestHit.t - 500.f;
 		//finalColor = { scaled_t,scaled_t ,scaled_t };
 
-		Vector3 hitPoint = closestHit.origin + closestHit.normal * 0.05f;
+		const Vector3 hitPoint = closestHit.origin + closestHit.normal * 0.05f;
 
 		for (auto& light : lights)
 		{
 			Vector3 lightDirection = LightUtils::GetDirectionToLight(light, hitPoint);
 
-			float lightDistance{ lightDirection.Normalize() };
+			const float lightDistance{ lightDirection.Normalize() };
 
 			if (m_ShadowsEnabled)
 			{
-				Ray lightRay = Ray{ hitPoint, lightDirection,  0.0001f, lightDistance };
+				const Ray lightRay = Ray{ hitPoint, lightDirection,  0.0001f, lightDistance };
 
 				if (scene->DoesHit(lightRay))
 				{

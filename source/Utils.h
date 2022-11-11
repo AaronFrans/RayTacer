@@ -4,7 +4,7 @@
 #include "Math.h"
 #include "DataTypes.h"
 
-#define MOLLERTRUMBORE
+//#define MOLLERTRUMBORE
 
 #define BVH
 
@@ -19,19 +19,19 @@ namespace dae
 		//SPHERE HIT-TESTS
 		inline bool HitTest_Sphere(const Sphere& sphere, const Ray& ray, HitRecord& hitRecord, bool ignoreHitRecord = false)
 		{
-			Vector3 originToSphere{ sphere.origin - ray.origin };
-			float originToSphereDistanceSqr{ originToSphere.SqrMagnitude() };
+			const Vector3 originToSphere{ sphere.origin - ray.origin };
+			const float originToSphereDistanceSqr{ originToSphere.SqrMagnitude() };
 
-			float oTSProjectedOnDirection{ Vector3::Dot(originToSphere, ray.direction) }; //oTS == origin To Sphere
-			float oTSPerpDistanceSqr{ originToSphereDistanceSqr - (oTSProjectedOnDirection * oTSProjectedOnDirection) };
-			float radiusSqr{ sphere.radius * sphere.radius };
+			const  float oTSProjectedOnDirection{ Vector3::Dot(originToSphere, ray.direction) }; //oTS == origin To Sphere
+			const float oTSPerpDistanceSqr{ originToSphereDistanceSqr - (oTSProjectedOnDirection * oTSProjectedOnDirection) };
+			const float radiusSqr{ sphere.radius * sphere.radius };
 
 			if (oTSPerpDistanceSqr > radiusSqr)
 				return false;
 
-			const float hitPointOnSphere{ sqrtf(radiusSqr - oTSPerpDistanceSqr) };
+			const const float hitPointOnSphere{ sqrtf(radiusSqr - oTSPerpDistanceSqr) };
 
-			float t = oTSProjectedOnDirection - hitPointOnSphere;
+			const float t = oTSProjectedOnDirection - hitPointOnSphere;
 
 			if (t < ray.min || t > ray.max)
 				return false;
@@ -67,7 +67,7 @@ namespace dae
 		{
 
 			//check if looking at plane
-			float denom = Vector3::Dot(ray.direction, plane.normal);
+			const float denom = Vector3::Dot(ray.direction, plane.normal);
 
 			//formula
 			//t = ((origin_plane - origin_ray) dot normal_plane) / direction_ray dot normal_plane
@@ -76,8 +76,8 @@ namespace dae
 				return false;
 
 
-			Vector3 rayToPlane = { plane.origin - ray.origin };
-			float t{ (Vector3::Dot(rayToPlane, plane.normal) / denom) };
+			const Vector3 rayToPlane = { plane.origin - ray.origin };
+			const float t{ (Vector3::Dot(rayToPlane, plane.normal) / denom) };
 			if (ray.min < t && t < ray.max)
 			{
 				if (!ignoreHitRecord)
@@ -139,7 +139,7 @@ namespace dae
 			break;
 			}
 
-			float dotNR{ Vector3::Dot(triangle.normal, ray.direction) };
+			const float dotNR{ Vector3::Dot(triangle.normal, ray.direction) };
 
 			if (abs(dotNR) < 0) return false;
 
@@ -164,14 +164,14 @@ namespace dae
 
 #ifdef MOLLERTRUMBORE
 
-			Vector3 edge{ triangle.v1 - triangle.v0 };
-			Vector3 edge2{ triangle.v2 - triangle.v0 };
+			const Vector3 edge{ triangle.v1 - triangle.v0 };
+			const Vector3 edge2{ triangle.v2 - triangle.v0 };
 
-			Vector3 rayEdgeCross{ Vector3::Cross(ray.direction, edge2) };
+			const Vector3 rayEdgeCross{ Vector3::Cross(ray.direction, edge2) };
 
-			float f{ 1.0f / Vector3::Dot(edge, rayEdgeCross) };
-			Vector3 triangleV0ToRay{ ray.origin - triangle.v0 };
-			float u{ f * Vector3::Dot(triangleV0ToRay,rayEdgeCross) };
+			const float f{ 1.0f / Vector3::Dot(edge, rayEdgeCross) };
+			const Vector3 triangleV0ToRay{ ray.origin - triangle.v0 };
+			const float u{ f * Vector3::Dot(triangleV0ToRay,rayEdgeCross) };
 
 			if (u < 0.0f || u > 1.0f) return false;
 
@@ -197,16 +197,16 @@ namespace dae
 
 #else
 
-			Vector3 center = (triangle.v0 + triangle.v1 + triangle.v2) / 3;
+			const Vector3 center = (triangle.v0 + triangle.v1 + triangle.v2) / 3;
 
-			Vector3 centerToRayOrigin = center - ray.origin;
-			float t{ Vector3::Dot(centerToRayOrigin, triangle.normal) / dotNR };
+			const Vector3 centerToRayOrigin = center - ray.origin;
+			const float t{ Vector3::Dot(centerToRayOrigin, triangle.normal) / dotNR };
 
 			if (t < ray.min || t > ray.max)
 				return false;
 
 
-			Vector3 p = ray.origin + t * ray.direction;
+			const Vector3 p = ray.origin + t * ray.direction;
 
 			Vector3 edgeToCheck = triangle.v1 - triangle.v0;
 			Vector3 pointToSide = p - triangle.v0;
@@ -289,7 +289,7 @@ namespace dae
 			if (!node.IsLeaf())
 			{
 				IntersectBVH(mesh, ray, sharedTriangle, hitRecord, hasHit, curClosestHit, ignoreHitRecord, node.leftChild);
-				IntersectBVH(mesh, ray, sharedTriangle, hitRecord, hasHit, curClosestHit, ignoreHitRecord, node.rightChild);
+				IntersectBVH(mesh, ray, sharedTriangle, hitRecord, hasHit, curClosestHit, ignoreHitRecord, node.leftChild + 1);
 				return;
 			}
 

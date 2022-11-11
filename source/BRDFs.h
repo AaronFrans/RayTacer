@@ -37,10 +37,10 @@ namespace dae
 			//clamp the angle, calculate the Phong Specular and return as rgb value
 			//Phong Specular = Specular Reflection Coefficient * angle of the light reflection ^Phong Exponent
 
-			Vector3 lightReflection{ Vector3::Reflect(l, n) };
+			const Vector3 lightReflection{ Vector3::Reflect(l, n) };
 
-			float angleCos{ std::max(Vector3::Dot(lightReflection, v),0.f) };
-			float phongSpecular = ks * powf(angleCos, exp);
+			const float angleCos{ std::max(Vector3::Dot(lightReflection, v),0.f) };
+			const float phongSpecular = ks * powf(angleCos, exp);
 
 			return ColorRGB{ phongSpecular ,phongSpecular ,phongSpecular };
 		}
@@ -54,7 +54,7 @@ namespace dae
 		 */
 		static ColorRGB FresnelFunction_Schlick(const Vector3& h, const Vector3& v, const ColorRGB& f0)
 		{
-			float powVar{ 1 - Vector3::Dot(h, v) };
+			const float powVar{ 1 - Vector3::Dot(h, v) };
 			return f0 +
 				(ColorRGB{ 1 - f0.r, 1 - f0.g, 1 - f0.b }) *
 				(powVar * powVar * powVar * powVar * powVar);
@@ -70,7 +70,7 @@ namespace dae
 		static float NormalDistribution_GGX(const Vector3& n, const Vector3& h, float roughness)
 		{
 
-			float roughnessSquared{ roughness * roughness }, piF{ static_cast<float>(M_PI) },
+			const float roughnessSquared{ roughness * roughness }, piF{ static_cast<float>(M_PI) },
 				normalHalfVectorSquared{ Square(Vector3::Dot(n, h)) };
 
 			return  roughnessSquared / (piF *
@@ -87,9 +87,9 @@ namespace dae
 		 */
 		static float GeometryFunction_SchlickGGX(const Vector3& n, const Vector3& v, float roughness)
 		{
-			float dotNV(std::max(Vector3::Dot(n, v), 0.0f));
+			const float dotNV(std::max(Vector3::Dot(n, v), 0.0f));
 
-			float k{ Square(roughness + 1) * 0.125f };
+			const float k{ Square(roughness + 1) * 0.125f };
 
 			return dotNV / ((dotNV) * (1 - k) + k);
 		}
